@@ -1,0 +1,27 @@
+{
+  "extraKnownMarketplaces": {
+    "cursor-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "cursor/plugins"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "pstack@cursor-plugins": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *.py) command -v ruff >/dev/null && ruff format -q \"$f\" && ruff check -q --fix \"$f\";; esac; } 2>/dev/null || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
