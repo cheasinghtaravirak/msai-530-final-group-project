@@ -1,0 +1,1 @@
+# Service-specific dependencies (retail-common brings Django, DRF, Kafka, etc.)

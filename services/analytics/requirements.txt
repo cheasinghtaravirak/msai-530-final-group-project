@@ -1,0 +1,4 @@
+# Service-specific dependencies (retail-common brings Django, DRF, Kafka, etc.)
+APScheduler>=3.10,<4
+pandas>=2.2,<3
+statsmodels>=0.14,<0.15

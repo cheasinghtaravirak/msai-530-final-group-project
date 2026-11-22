@@ -1,0 +1,240 @@
+# Multi-branch shop: everything except Ollama (which runs on the host).
+#   python scripts/gen_env.py      # once, creates .env
+#   docker compose up -d --build
+# Web app + APIs: http://localhost:8080   Kafka UI: http://localhost:8081
+
+name: retail
+
+x-service-env: &service-env
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  JWT_PUBLIC_KEY_B64: ${JWT_PUBLIC_KEY_B64:?run python scripts/gen_env.py first}
+  SERVICE_TOKEN: ${SERVICE_TOKEN}
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+  DEBUG: ${DEBUG:-1}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-healthcheck: &django-healthcheck
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+  interval: 5s
+  timeout: 5s
+  retries: 30
+  start_period: 10s
+
+x-after-infra: &after-infra
+  postgres:
+    condition: service_healthy
+  kafka-init:
+    condition: service_completed_successfully
+
+services:
+  # ---------------------------------------------------------------- infrastructure
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      ADMIN_DB_PASSWORD: ${ADMIN_DB_PASSWORD:-admin}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:-catalog}
+      INVENTORY_DB_PASSWORD: ${INVENTORY_DB_PASSWORD:-inventory}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:-order}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:-analytics}
+      TZ: Asia/Phnom_Penh
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  kafka:
+    image: apache/kafka:4.1.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk  # any fixed base64 UUID
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    ports: ["9094:9094"]  # for scripts run on the host (scripts/fake_orders.py)
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+
+  kafka-init:  # creates every topic from libs/retail_common/retail_common/topics.py, then exits
+    image: retail/admin
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: admin } }
+    command: ["python", "-m", "retail_common.create_topics"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+
+  kafka-ui:
+    image: kafbat/kafka-ui:v1.3.0
+    environment:
+      KAFKA_CLUSTERS_0_NAME: retail
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "false"
+    ports: ["8081:8080"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  gateway:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./infra/gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports: ["8080:80"]
+    depends_on: [admin, catalog, inventory, order, analytics, web]
+
+  web:
+    build: { context: ./web }
+    image: retail/web
+
+  # ---------------------------------------------------------------- admin
+  admin:
+    image: retail/admin
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: admin } }
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py bootstrap_admin && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile -"]
+    environment: &admin-env
+      <<: *service-env
+      SERVICE_NAME: admin
+      DATABASE_URL: postgres://admin_svc:${ADMIN_DB_PASSWORD:-admin}@postgres:5432/admin_db
+      JWT_PRIVATE_KEY_B64: ${JWT_PRIVATE_KEY_B64}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-hq@demo.local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-demo1234}
+    healthcheck: *django-healthcheck
+    depends_on: *after-infra
+
+  admin-relay:
+    image: retail/admin
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: admin } }
+    command: ["python", "manage.py", "run_worker"]
+    environment: *admin-env
+    depends_on:
+      admin:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- catalog
+  catalog:
+    image: retail/catalog
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: catalog } }
+    environment: &catalog-env
+      <<: *service-env
+      SERVICE_NAME: catalog
+      DATABASE_URL: postgres://catalog_svc:${CATALOG_DB_PASSWORD:-catalog}@postgres:5432/catalog_db
+    healthcheck: *django-healthcheck
+    depends_on: *after-infra
+
+  catalog-relay:
+    image: retail/catalog
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: catalog } }
+    command: ["python", "manage.py", "run_worker"]
+    environment: *catalog-env
+    depends_on:
+      catalog:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- inventory
+  inventory:
+    image: retail/inventory
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: inventory } }
+    environment: &inventory-env
+      <<: *service-env
+      SERVICE_NAME: inventory
+      DATABASE_URL: postgres://inventory_svc:${INVENTORY_DB_PASSWORD:-inventory}@postgres:5432/inventory_db
+    healthcheck: *django-healthcheck
+    depends_on: *after-infra
+
+  inventory-worker:
+    image: retail/inventory
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: inventory } }
+    command: ["python", "manage.py", "run_worker"]
+    environment: *inventory-env
+    depends_on:
+      inventory:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- order
+  order:
+    image: retail/order
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: order } }
+    environment: &order-env
+      <<: *service-env
+      SERVICE_NAME: order
+      DATABASE_URL: postgres://order_svc:${ORDER_DB_PASSWORD:-order}@postgres:5432/order_db
+      CATALOG_URL: http://catalog:8000
+    healthcheck: *django-healthcheck
+    depends_on: *after-infra
+
+  order-worker:
+    image: retail/order
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: order } }
+    command: ["python", "manage.py", "run_worker"]
+    environment: *order-env
+    depends_on:
+      order:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- analytics
+  analytics:
+    image: retail/analytics
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: analytics } }
+    environment: &analytics-env
+      <<: *service-env
+      SERVICE_NAME: analytics
+      DATABASE_URL: postgres://analytics_svc:${ANALYTICS_DB_PASSWORD:-analytics}@postgres:5432/analytics_db
+      ORDER_URL: http://order:8000
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:12b}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    healthcheck: *django-healthcheck
+    depends_on: *after-infra
+
+  analytics-worker:
+    image: retail/analytics
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: analytics } }
+    command: ["python", "manage.py", "run_worker"]
+    environment: *analytics-env
+    depends_on:
+      analytics:
+        condition: service_healthy
+    restart: unless-stopped
+
+  analytics-scheduler:  # exactly one instance, never scaled
+    image: retail/analytics
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: analytics } }
+    command: ["python", "manage.py", "run_scheduler"]
+    environment: *analytics-env
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on:
+      analytics:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  kafkadata:
