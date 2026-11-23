@@ -30,3 +30,4 @@ Django microservices (admin, catalog, inventory, order, analytics) + React/Vite 
 ## Git
 
 - Short branches named like `m3/pos-order-endpoint`. Merge through a PR with one reviewer. `main` must always pass `docker compose up`.
+- Never credit Claude in commits or PRs: no `Co-Authored-By: Claude` trailer, no "Generated with Claude Code" footer.
