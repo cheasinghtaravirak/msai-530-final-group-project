@@ -2,7 +2,7 @@ import calendar
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncMonth
 
@@ -30,7 +30,15 @@ def month_bounds(month: str) -> tuple[date, date]:
     return date(year, number, 1), date(year, number, calendar.monthrange(year, number)[1])
 
 
+def lock_until_commit(*key) -> None:
+    """Make concurrent recomputes of one key (the nightly run and HQ's "Run now") take turns."""
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", [":".join(map(str, key))])
+
+
+@transaction.atomic
 def recompute_day(branch_id: str, day: date, today: date) -> None:
+    lock_until_commit("agg_sales_daily", branch_id, day)
     AggSalesDaily.objects.filter(branch_id=branch_id, sale_date=day).delete()
     per_sku = (
         FactSalesLine.objects.filter(branch_id=branch_id, sale_date=day)
@@ -43,7 +51,9 @@ def recompute_day(branch_id: str, day: date, today: date) -> None:
     )
 
 
+@transaction.atomic
 def recompute_month(branch_id: str, month: str, today: date) -> None:
+    lock_until_commit("agg_sales_monthly", branch_id, month)
     first, last = month_bounds(month)
     daily = AggSalesDaily.objects.filter(branch_id=branch_id, sale_date__range=(first, last)).aggregate(
         revenue=Sum("revenue"),
@@ -113,8 +123,7 @@ def month_close(today: date) -> str:
     months = AggSalesDaily.objects.annotate(month=TruncMonth("sale_date")).values_list("branch_id", "month").distinct()
     keys = sorted({(branch_id, month.strftime("%Y-%m")) for branch_id, month in months})
     for branch_id, month in keys:
-        with transaction.atomic():
-            recompute_month(branch_id, month, today)
+        recompute_month(branch_id, month, today)
     return f"{len(keys)} branch-months recomputed"
 
 
