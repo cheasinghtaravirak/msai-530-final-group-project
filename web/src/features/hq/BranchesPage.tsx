@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Modal, Select, Stack, Table, Text, TextInput } from "@mantine/core";
+import { Alert, Badge, Button, Card, Group, Modal, Select, Stack, Table, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconMapPins, IconPlus } from "@tabler/icons-react";
@@ -20,7 +20,7 @@ export interface Branch {
 
 const REGIONS = ["PHNOM_PENH", "SIEM_REAP", "BATTAMBANG", "SIHANOUKVILLE", "KAMPOT"];
 const REGION_OPTIONS = REGIONS.map((r) => ({ value: r, label: humanize(r) }));
-const COLUMNS = ["ID", "Name", "Region", "Address", "Status"];
+const COLUMNS = ["ID", "Name", "Region", "Address", "Status", ""];
 
 export function useBranches() {
   return useQuery({
@@ -32,6 +32,7 @@ export function useBranches() {
 export function BranchesPage() {
   const { data, isLoading, error, refetch } = useBranches();
   const [opened, { open, close }] = useDisclosure(false);
+  const [closing, setClosing] = useState<Branch | null>(null);
 
   return (
     <Stack gap="xl">
@@ -76,6 +77,19 @@ export function BranchesPage() {
                         <Table.Td>
                           <Badge color={b.status === "OPEN" ? "green" : "gray"}>{humanize(b.status)}</Badge>
                         </Table.Td>
+                        <Table.Td ta="right">
+                          {b.status === "OPEN" && (
+                            <Button
+                              size="xs"
+                              variant="subtle"
+                              color="red"
+                              aria-label={`Close ${b.branch_id}`}
+                              onClick={() => setClosing(b)}
+                            >
+                              Close
+                            </Button>
+                          )}
+                        </Table.Td>
                       </Table.Tr>
                     ))}
                   </Table.Tbody>
@@ -87,6 +101,9 @@ export function BranchesPage() {
       )}
       <Modal opened={opened} onClose={close} title={<Text fw={600}>New branch</Text>}>
         <NewBranchForm onDone={close} />
+      </Modal>
+      <Modal opened={closing !== null} onClose={() => setClosing(null)} title={<Text fw={600}>Close branch</Text>}>
+        {closing && <CloseBranchConfirm branch={closing} onDone={() => setClosing(null)} />}
       </Modal>
     </Stack>
   );
@@ -144,5 +161,35 @@ function NewBranchForm({ onDone }: { onDone: () => void }) {
         </Button>
       </Stack>
     </form>
+  );
+}
+
+function CloseBranchConfirm({ branch, onDone }: { branch: Branch; onDone: () => void }) {
+  const queryClient = useQueryClient();
+  const closeBranch = useMutation({
+    mutationFn: () => api<Branch>(`/admin/branches/${branch.branch_id}/close`, { method: "POST" }),
+    onSuccess: (b) => {
+      notifications.show({ color: "green", message: `Branch ${b.branch_id} closed` });
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+      onDone();
+    },
+  });
+
+  return (
+    <Stack>
+      {closeBranch.error && <Alert color="red">{closeBranch.error.message}</Alert>}
+      <Text>
+        Close {branch.branch_id} {branch.name}? Closing revokes every staff role at this branch, so its managers and
+        cashiers can no longer work there.
+      </Text>
+      <Group justify="flex-end" gap="xs">
+        <Button variant="default" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button color="red" loading={closeBranch.isPending} onClick={() => closeBranch.mutate()}>
+          Close branch
+        </Button>
+      </Group>
+    </Stack>
   );
 }
