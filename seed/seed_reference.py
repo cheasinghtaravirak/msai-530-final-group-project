@@ -98,8 +98,9 @@ def seed_users(api: Api, closed: set[str]) -> None:
             user = users.get(email) or api(
                 "POST", "/admin/users", {"email": email, "full_name": f"{title} {branch['name']}", "password": PASSWORD}
             )
-            if branch["branch_id"] not in closed:
-                api("POST", f"/admin/users/{user['user_id']}/roles", {"role_code": role, "branch_id": branch["branch_id"]})
+            if branch["branch_id"] in closed:
+                continue
+            api("POST", f"/admin/users/{user['user_id']}/roles", {"role_code": role, "branch_id": branch["branch_id"]})
 
 
 def seed_categories(api: Api) -> dict[str, str]:
