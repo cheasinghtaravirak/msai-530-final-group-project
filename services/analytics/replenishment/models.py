@@ -1,5 +1,3 @@
-"""Replenishment schema (design doc §5.5, §9.3)."""
-
 import uuid
 from decimal import Decimal
 
@@ -25,8 +23,6 @@ class StockPolicy(models.Model):
 
 
 class SupplierTerms(models.Model):
-    """Copy of supplier_terms.changed for the preferred supplier only (owner: Catalog)."""
-
     sku = models.CharField(primary_key=True, max_length=40)
     supplier_id = models.UUIDField()
     lead_time_days = models.PositiveSmallIntegerField()
@@ -58,7 +54,7 @@ class Recommendation(models.Model):
     suggested_qty = models.PositiveIntegerField()
     supplier_id = models.UUIDField(null=True, blank=True)
     source_branch_id = models.CharField(max_length=10, null=True, blank=True)
-    reason = models.TextField()  # e.g. "14d demand 42, on hand 6, on order 0"
+    reason = models.TextField()
     status = models.CharField(max_length=8, choices=Status.choices, default=Status.PENDING)
 
     class Meta:
@@ -71,7 +67,6 @@ class Recommendation(models.Model):
                 name="recommendation_target_matches_type",
             ),
             models.CheckConstraint(condition=Q(suggested_qty__gt=0), name="recommendation_qty_positive"),
-            # J5 expires the previous suggestions before writing new ones, so a manager never sees two.
             models.UniqueConstraint(
                 fields=["branch_id", "sku"], condition=Q(status="PENDING"), name="recommendation_one_pending"
             ),
@@ -87,7 +82,7 @@ class Decision(models.Model):
     recommendation = models.OneToOneField(
         Recommendation, primary_key=True, on_delete=models.PROTECT, related_name="decision"
     )
-    decided_by = models.UUIDField()  # user_id in Admin
+    decided_by = models.UUIDField()
     final_qty = models.PositiveIntegerField()
     outcome = models.CharField(max_length=8, choices=Outcome.choices)
     note = models.TextField(blank=True, default="")

@@ -37,7 +37,6 @@ export function BranchProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<BranchState>(() => {
     const branches = branchIds(user, ["BRANCH_MANAGER"]) ?? [];
-    // The stored choice is only a preference; the token decides which branches are valid.
     const branchId = choice !== null && branches.includes(choice) ? choice : (branches[0] ?? null);
     return { branches, branchId, selectBranch };
   }, [user, choice, selectBranch]);

@@ -1,5 +1,3 @@
-"""Forecasting schema (design doc §5.5, §9.2)."""
-
 import uuid
 
 from django.db import models
@@ -19,10 +17,10 @@ class ForecastRun(models.Model):
 
     run_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     method = models.CharField(max_length=12, choices=Method.choices)
-    data_cutoff = models.DateField()  # last day of actuals the run saw
+    data_cutoff = models.DateField()
     horizon_days = models.PositiveSmallIntegerField(default=14)
     status = models.CharField(max_length=7, choices=Status.choices, default=Status.RUNNING)
-    wape = models.DecimalField(max_digits=7, decimal_places=4, null=True, blank=True)  # of the previous run
+    wape = models.DecimalField(max_digits=7, decimal_places=4, null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

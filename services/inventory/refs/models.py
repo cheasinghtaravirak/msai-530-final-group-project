@@ -17,8 +17,6 @@ class BranchRef(models.Model):
 
 
 class SkuRef(models.Model):
-    """Copy of product.upserted (owner: Catalog)."""
-
     sku = models.CharField(primary_key=True, max_length=50)
     name = models.CharField(max_length=200)
     category_id = models.UUIDField()

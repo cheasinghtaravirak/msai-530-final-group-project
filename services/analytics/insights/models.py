@@ -1,12 +1,10 @@
-"""Insights schema (design doc §5.5, §9.4): LLM output and the exact numbers it was given."""
-
 import uuid
 
 from django.db import models
 from forecasting.models import ForecastRun
 from replenishment.models import Recommendation
 
-COMPANY = "ALL"  # branch_id of the company-wide briefing
+COMPANY_BRANCH_ID = "ALL"
 
 
 class AiBriefing(models.Model):
@@ -19,7 +17,7 @@ class AiBriefing(models.Model):
     branch_id = models.CharField(max_length=10)
     briefing_date = models.DateField()
     run = models.ForeignKey(ForecastRun, on_delete=models.PROTECT, null=True, blank=True, related_name="briefings")
-    model = models.CharField(max_length=100)  # e.g. gemma4:12b, or TEMPLATE
+    model = models.CharField(max_length=100)
     prompt_version = models.CharField(max_length=50)
     input_json = models.JSONField()
     output_json = models.JSONField(null=True, blank=True)

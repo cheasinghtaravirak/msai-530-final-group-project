@@ -1,5 +1,3 @@
-"""Reporting schema (design doc §5.5): dimensions, facts and rollups."""
-
 from django.db import models
 from django.db.models import Q
 
@@ -23,8 +21,6 @@ class DimBranch(models.Model):
 
 
 class DimProduct(models.Model):
-    """Copy of product.upserted (owner: Catalog)."""
-
     sku = models.CharField(primary_key=True, max_length=40)
     name = models.CharField(max_length=200)
     category_id = models.UUIDField()
@@ -39,7 +35,7 @@ class DimProduct(models.Model):
 class Calendar(models.Model):
     calendar_date = models.DateField(primary_key=True)
     iso_week = models.PositiveSmallIntegerField()
-    weekday = models.PositiveSmallIntegerField()  # ISO: Monday = 1 ... Sunday = 7
+    weekday = models.PositiveSmallIntegerField()
     is_holiday = models.BooleanField(default=False)
 
     class Meta:
@@ -52,8 +48,6 @@ class Calendar(models.Model):
 
 
 class FactSalesLine(models.Model):
-    """One row per order line and entry type. Written with ON CONFLICT DO NOTHING (design doc §8.2)."""
-
     class EntryType(models.TextChoices):
         SALE = "SALE"
         REFUND = "REFUND"
@@ -68,10 +62,10 @@ class FactSalesLine(models.Model):
     branch_id = models.CharField(max_length=10)
     sku = models.CharField(max_length=40)
     channel = models.CharField(max_length=10, choices=Channel.choices, default=Channel.POS)
-    sale_date = models.DateField()  # the day the sale or refund counts on
-    qty = models.IntegerField()  # negative for REFUND
-    net_amount = models.DecimalField(max_digits=12, decimal_places=2)  # negative for REFUND
-    event_id = models.UUIDField(null=True, blank=True)  # null for bulk-loaded history
+    sale_date = models.DateField()
+    qty = models.IntegerField()
+    net_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    event_id = models.UUIDField(null=True, blank=True)
 
     class Meta:
         db_table = "fact_sales_line"
@@ -86,12 +80,10 @@ class FactSalesLine(models.Model):
 
 
 class StockCurrent(models.Model):
-    """Latest stock.adjusted snapshot per branch and SKU; applied only when `version` is newer."""
-
     pk = models.CompositePrimaryKey("branch_id", "sku")
     branch_id = models.CharField(max_length=10)
     sku = models.CharField(max_length=40)
-    on_hand = models.IntegerField()  # may be negative (design doc §5.3)
+    on_hand = models.IntegerField()
     on_order = models.IntegerField(default=0)
     version = models.PositiveIntegerField()
 
@@ -112,8 +104,6 @@ class FactStockDaily(models.Model):
 
 
 class DirtyDay(models.Model):
-    """A (branch, day) whose rollups J2 must recompute."""
-
     pk = models.CompositePrimaryKey("branch_id", "sale_date")
     branch_id = models.CharField(max_length=10)
     sale_date = models.DateField()
@@ -130,7 +120,7 @@ class AggSalesDaily(models.Model):
     sale_date = models.DateField()
     units = models.IntegerField()
     revenue = models.DecimalField(max_digits=12, decimal_places=2)
-    order_count = models.PositiveIntegerField()  # distinct orders with this SKU, not summable across SKUs
+    order_count = models.PositiveIntegerField()
     status = models.CharField(max_length=11, choices=Status.choices, default=Status.PROVISIONAL)
     computed_at = models.DateTimeField(auto_now=True)
 
@@ -142,7 +132,7 @@ class AggSalesDaily(models.Model):
 class AggSalesMonthly(models.Model):
     pk = models.CompositePrimaryKey("branch_id", "month")
     branch_id = models.CharField(max_length=10)
-    month = models.CharField(max_length=7)  # YYYY-MM
+    month = models.CharField(max_length=7)
     revenue = models.DecimalField(max_digits=12, decimal_places=2)
     units = models.IntegerField()
     orders = models.PositiveIntegerField()

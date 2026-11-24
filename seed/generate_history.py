@@ -26,9 +26,9 @@ TZ = ZoneInfo("Asia/Phnom_Penh")
 ID_NAMESPACE = uuid.UUID("6d1c7a3e-4f0b-4c55-9f43-5e0b8c3f9a10")
 
 BRANCH_SIZE = {"BR-01": 1.3, "BR-02": 1.0, "BR-03": 0.9, "BR-04": 1.1, "BR-05": 0.7}
-WEEKDAY_FACTOR = (0.85, 0.85, 0.9, 0.95, 1.1, 1.3, 1.2)  # Monday .. Sunday
-ORDERS_PER_DAY = 85  # an average branch on an average weekday at the start of the window
-TREND = 0.10  # growth from the first to the last day of the window
+WEEKDAY_FACTOR = (0.85, 0.85, 0.9, 0.95, 1.1, 1.3, 1.2)
+ORDERS_PER_DAY = 85
+TREND = 0.10
 OPEN_HOURS = (7, 21)
 LINES_PER_ORDER = {1: 30, 2: 25, 3: 20, 4: 12, 5: 8, 6: 5}
 QTY_PER_LINE = {1: 70, 2: 20, 3: 7, 4: 3}
@@ -36,7 +36,6 @@ SLOW_SKUS = 20
 SLOW_FACTOR = 0.25
 STOCKOUT_GAPS = 8
 
-# (category, [(code, name, base price)], [(suffix, label, price multiplier)])
 CATEGORIES = [
     (
         "Beverages",
@@ -225,7 +224,6 @@ CATALOGUE = _catalogue()
 
 
 def popularity(rng: random.Random) -> tuple[list[float], set[str]]:
-    """Zipf-like popularity over a shuffled catalogue; the tail end gets the slow sellers."""
     ranked = CATALOGUE[:]
     rng.shuffle(ranked)
     slow = {s.sku for s in ranked[-SLOW_SKUS:]}
@@ -273,7 +271,6 @@ def build_order(
 
 
 def window(end: date) -> tuple[date, date]:
-    """From the first day of the month six months before `end`, so every whole month is complete."""
     month = end.month - 6
     year = end.year + (month - 1) // 12
     return date(year, (month - 1) % 12 + 1, 1), end
@@ -288,7 +285,6 @@ class Stockout:
 
 
 def stockouts(end: date) -> list[Stockout]:
-    """A few multi-day gaps where a popular SKU is out of stock at one branch and sells nothing."""
     start, _ = window(end)
     rng = random.Random(f"{SEED}:stockouts")
     weights, _ = popularity(random.Random(SEED))
@@ -304,7 +300,6 @@ def stockouts(end: date) -> list[Stockout]:
 
 
 def orders(end: date) -> Iterator[dict]:
-    """Every order from window(end), in (day, branch, time) order."""
     start, _ = window(end)
     rng = random.Random(SEED)
     weights, _ = popularity(rng)

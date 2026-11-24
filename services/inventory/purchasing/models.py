@@ -1,5 +1,3 @@
-"""inventory_db (design doc §5.3): purchase_order, po_line, goods_receipt, receipt_line."""
-
 import uuid
 
 from django.db import models
@@ -17,8 +15,7 @@ class PurchaseOrder(models.Model):
     po_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     branch_id = models.CharField(max_length=10)
     supplier_id = models.UUIDField()
-    # UNIQUE blocks a second PO from a redelivered replenishment.approved event.
-    recommendation_id = models.UUIDField(unique=True, null=True, blank=True)  # null when created manually
+    recommendation_id = models.UUIDField(unique=True, null=True, blank=True)
     status = models.CharField(max_length=10, choices=PoStatus.choices, default=PoStatus.OPEN)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -53,7 +50,7 @@ class GoodsReceipt(models.Model):
         blank=True,
         related_name="receipts",
         db_column="po_id",
-    )  # null for an ad hoc receipt
+    )
     branch_id = models.CharField(max_length=10)
     received_by = models.UUIDField()
     received_at = models.DateTimeField()

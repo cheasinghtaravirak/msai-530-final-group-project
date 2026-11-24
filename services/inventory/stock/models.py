@@ -1,5 +1,3 @@
-"""inventory_db (design doc §5.3): stock_level, the stock_movement ledger, and transfers."""
-
 import uuid
 
 from django.db import models
@@ -23,15 +21,12 @@ class TransferStatus(models.TextChoices):
 
 
 class StockLevel(models.Model):
-    """Every change here writes one stock_movement row in the same transaction."""
-
     pk = models.CompositePrimaryKey("branch_id", "sku")
     branch_id = models.CharField(max_length=10)
     sku = models.CharField(max_length=50)
-    # May go negative: a sale is accepted even when the count is wrong, and the manager adjusts later.
     on_hand = models.IntegerField(default=0)
     on_order = models.IntegerField(default=0)
-    version = models.PositiveIntegerField(default=0)  # bumped on every change, sent in stock.adjusted
+    version = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -48,10 +43,10 @@ class StockMovement(models.Model):
     sku = models.CharField(max_length=50)
     qty_delta = models.IntegerField()
     reason = models.CharField(max_length=20, choices=MovementReason.choices)
-    source_ref = models.CharField(max_length=64)  # order_id, receipt_id or transfer_id
+    source_ref = models.CharField(max_length=64)
     source_line = models.PositiveIntegerField()
     note = models.CharField(max_length=500, blank=True, default="")
-    created_by = models.UUIDField(null=True, blank=True)  # user_id; null when written by an event consumer
+    created_by = models.UUIDField(null=True, blank=True)
     occurred_at = models.DateTimeField()
 
     class Meta:
@@ -59,7 +54,6 @@ class StockMovement(models.Model):
         ordering = ["-occurred_at"]
         indexes = [models.Index(fields=["branch_id", "sku", "-occurred_at"], name="stock_movement_history")]
         constraints = [
-            # Even if consumer idempotency failed, the same source line can't change stock twice.
             models.UniqueConstraint(
                 fields=["source_ref", "source_line", "branch_id", "reason"], name="stock_movement_source_unique"
             ),
@@ -72,7 +66,7 @@ class Transfer(models.Model):
     transfer_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     from_branch_id = models.CharField(max_length=10)
     to_branch_id = models.CharField(max_length=10)
-    recommendation_id = models.UUIDField(unique=True, null=True, blank=True)  # null when created manually
+    recommendation_id = models.UUIDField(unique=True, null=True, blank=True)
     status = models.CharField(max_length=10, choices=TransferStatus.choices, default=TransferStatus.REQUESTED)
 
     class Meta:
