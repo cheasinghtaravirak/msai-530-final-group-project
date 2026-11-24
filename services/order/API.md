@@ -16,7 +16,7 @@ The **Phase** column says which phase of the implementation plan builds the endp
 | Method and path | Phase | Roles |
 |---|---|---|
 | `GET /health` | 1 (built) | none |
-| `GET /pos/items?barcode=` or `?q=` | 2 | `CASHIER`, `BRANCH_MANAGER` |
+| `GET /pos/items?branch_id=&barcode=` or `&q=` | 2 (built) | `CASHIER`, `BRANCH_MANAGER` |
 | `POST /orders` | 3 | `CASHIER`, `BRANCH_MANAGER` |
 | `GET /orders?branch_id=&date=` | 3 | `CASHIER`, `BRANCH_MANAGER` |
 | `GET /orders/{order_id}` | 3 | `CASHIER`, `BRANCH_MANAGER` |
@@ -33,7 +33,12 @@ Served only from `product_cache` and `price_cache`, so the POS keeps selling whe
 {"sku": "COKE-330", "name": "Coca-Cola 330 ml", "unit_price": "1.70"}
 ```
 
-`?q=coke&branch_id=BR-04` returns a page of the same objects: `{"results": [...], "count": n}`.
+`?q=coke&branch_id=BR-04` returns a page of the same objects: `{"results": [...], "count": n}`. `q` matches the name or SKU code (case-insensitive) or the exact barcode.
+
+- `branch_id` and exactly one of `barcode` or `q` are required (`VALIDATION_ERROR` otherwise).
+- Only active products are returned. An unknown or discontinued barcode returns 404 `ITEM_NOT_FOUND`.
+- `unit_price` is `null` while the item has no price in `price_cache` yet (for example, the product arrived before any `price.changed`).
+- The rule lives in `caches/pricing.py`, the same rule as Catalog's `products/pricing.py`.
 
 ## POST /orders
 
@@ -88,7 +93,7 @@ Refunds the whole order. No body. Sets `status = REFUNDED`, `refunded_at`, `refu
 
 | Event | Direction | Phase | Effect |
 |---|---|---|---|
-| `product.upserted` (E2) | consumes | 2 | Upsert `product_cache` |
-| `price.changed` (E3) | consumes | 2 | Insert into `price_cache` |
+| `product.upserted` (E2) | consumes | 2 (built) | Upsert `product_cache` by `sku`. `active` is `status == "ACTIVE"`. A barcode that moved to this SKU is cleared from any other row first. |
+| `price.changed` (E3) | consumes | 2 (built) | Upsert `price_cache` by `(sku, branch_scope, valid_from)`. A price may arrive before its product; the item shows up priced once the product arrives. |
 | `order.completed` (E5) | publishes | 3 | On every new order. Payload in design doc §6.3. |
 | `order.refunded` (E6) | publishes | 3 | On every refund. Payload in design doc §6.3. |
