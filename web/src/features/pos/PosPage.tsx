@@ -50,8 +50,8 @@ export function PosPage() {
     if (e.key !== "Enter") return;
     const value = e.currentTarget.value.trim();
     if (BARCODE.test(value)) {
-      if (barcode === value) refetch();
-      else setBarcode(value);
+      setBarcode(value);
+      setText("");
     } else if (value && value === q) {
       refetch();
     }
