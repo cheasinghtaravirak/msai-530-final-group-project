@@ -1,10 +1,23 @@
-import { Stack, Text, Title } from "@mantine/core";
+import { Button, Card } from "@mantine/core";
+import type { Icon } from "@tabler/icons-react";
+import { Link } from "react-router-dom";
 
-export function MessagePage({ title, text }: { title: string; text: string }) {
+import { EmptyState } from "../ui";
+
+export function MessagePage({ icon, title, text }: { icon: Icon; title: string; text: string }) {
   return (
-    <Stack gap="xs">
-      <Title order={2}>{title}</Title>
-      <Text c="dimmed">{text}</Text>
-    </Stack>
+    <Card mt="xl">
+      <EmptyState
+        icon={icon}
+        title={title}
+        action={
+          <Button component={Link} to="/" variant="light">
+            Go to your dashboard
+          </Button>
+        }
+      >
+        {text}
+      </EmptyState>
+    </Card>
   );
 }

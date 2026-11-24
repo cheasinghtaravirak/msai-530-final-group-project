@@ -1,4 +1,5 @@
-import { Alert, Button, Center, Paper, PasswordInput, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Avatar, Button, Card, Center, PasswordInput, Stack, Text, TextInput, Title } from "@mantine/core";
+import { IconBuildingStore } from "@tabler/icons-react";
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
@@ -31,37 +32,48 @@ export function LoginPage() {
   }
 
   return (
-    <Center mih="100vh" p="md">
-      <Paper withBorder shadow="sm" p="xl" w="100%" maw={380}>
-        <form onSubmit={onSubmit}>
-          <Stack>
-            <div>
-              <Title order={3}>Retail Ops</Title>
-              <Text size="sm" c="dimmed">
-                Sign in with your staff account
-              </Text>
-            </div>
-            {error && <Alert color="red">{error}</Alert>}
-            <TextInput
-              label="Email"
-              type="email"
-              required
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.currentTarget.value)}
-            />
-            <PasswordInput
-              label="Password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-            />
-            <Button type="submit" loading={busy} fullWidth>
-              Sign in
-            </Button>
+    <Center className="login-canvas" p="md">
+      <Stack w="100%" maw={380} gap="lg">
+        <Stack align="center" gap="sm">
+          <Avatar radius="lg" size={52} color="accent" variant="filled" aria-hidden>
+            <IconBuildingStore size={30} stroke={1.6} />
+          </Avatar>
+          <Stack align="center" gap={2}>
+            <Title order={1}>Retail Ops</Title>
+            <Text c="dimmed">Sign in with your staff account</Text>
           </Stack>
-        </form>
-      </Paper>
+        </Stack>
+        <Card padding="xl">
+          <form onSubmit={onSubmit}>
+            <Stack gap="md">
+              {error && (
+                <Alert color="red" radius="md">
+                  {error}
+                </Alert>
+              )}
+              <TextInput
+                label="Email"
+                type="email"
+                autoComplete="username"
+                required
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+              />
+              <PasswordInput
+                label="Password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+              />
+              <Button type="submit" size="md" loading={busy} fullWidth mt="xs">
+                Sign in
+              </Button>
+            </Stack>
+          </form>
+        </Card>
+      </Stack>
     </Center>
   );
 }

@@ -1,3 +1,4 @@
+import { IconCompass, IconLock } from "@tabler/icons-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "./auth/AuthContext";
@@ -71,9 +72,12 @@ export function App() {
         />
         <Route
           path="no-access"
-          element={<MessagePage title="No access" text="Your account has no role for this page." />}
+          element={<MessagePage icon={IconLock} title="No access" text="Your account has no role for this page." />}
         />
-        <Route path="*" element={<MessagePage title="Page not found" text="This page does not exist." />} />
+        <Route
+          path="*"
+          element={<MessagePage icon={IconCompass} title="Page not found" text="This page does not exist." />}
+        />
       </Route>
     </Routes>
   );
