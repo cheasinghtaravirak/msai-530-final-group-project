@@ -20,6 +20,7 @@ from typing import Any
 from django.conf import settings
 from django.db import InterfaceError, OperationalError, close_old_connections, transaction
 
+from .context import reset_request_id, set_request_id
 from .models import ProcessedEvent
 from .topics import dlq_name, topic_for
 
@@ -52,15 +53,20 @@ def apply_event(envelope: dict[str, Any]) -> bool:
     handler = HANDLERS.get(envelope.get("event_type"))
     if handler is None:
         return False
-    with transaction.atomic():
-        _, created = ProcessedEvent.objects.get_or_create(
-            event_id=envelope["event_id"],
-            defaults={"event_type": envelope["event_type"]},
-        )
-        if not created:
-            log.info("Skipping duplicate %s %s", envelope["event_type"], envelope["event_id"])
-            return False
-        handler(envelope)
+    # Events the handler publishes, and its log lines, carry the request ID that caused this event.
+    token = set_request_id(envelope.get("correlation_id"))
+    try:
+        with transaction.atomic():
+            _, created = ProcessedEvent.objects.get_or_create(
+                event_id=envelope["event_id"],
+                defaults={"event_type": envelope["event_type"]},
+            )
+            if not created:
+                log.info("Skipping duplicate %s %s", envelope["event_type"], envelope["event_id"])
+                return False
+            handler(envelope)
+    finally:
+        reset_request_id(token)
     return True
 
 

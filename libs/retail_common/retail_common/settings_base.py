@@ -1,8 +1,8 @@
 """Base Django settings shared by every service. In a service's config/settings.py:
 
-    from retail_common.settings_base import *  # noqa: F403
-    INSTALLED_APPS += ["myapp"]
-    EVENT_HANDLER_MODULES = ["myapp.handlers"]
+from retail_common.settings_base import *  # noqa: F403
+INSTALLED_APPS += ["myapp"]
+EVENT_HANDLER_MODULES = ["myapp.handlers"]
 """
 
 import base64
@@ -71,15 +71,8 @@ SERVICE_TOKEN = os.environ.get("SERVICE_TOKEN", "")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "filters": {"request_id": {"()": "retail_common.context.RequestIdFilter"}},
-    "formatters": {
-        "standard": {
-            "format": f"%(asctime)s %(levelname)s {SERVICE_NAME} [%(name)s] rid=%(request_id)s %(message)s",
-        }
-    },
-    "handlers": {
-        "console": {"class": "logging.StreamHandler", "filters": ["request_id"], "formatter": "standard"}
-    },
+    "formatters": {"json": {"()": "retail_common.context.JsonFormatter"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
     "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
     "loggers": {"django.db.backends": {"level": "WARNING"}},
 }
