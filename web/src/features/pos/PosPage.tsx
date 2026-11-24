@@ -31,7 +31,7 @@ function usePosItems(branchId: string | null, lookup: Lookup | null) {
       return api<{ results: PosItem[]; count: number }>(`/order/pos/items?${params}`);
     },
     enabled: branchId !== null && lookup !== null,
-    // Prices change at HQ while the till is open: never serve a cached price.
+    // Overrides the app's 10 s cache: HQ can change a price while the till is open.
     staleTime: 0,
     refetchOnWindowFocus: true,
     retry: false,

@@ -35,8 +35,6 @@ def items_data(products, branch_id: str) -> list[dict]:
 
 
 class PosItemsView(APIView):
-    """GET /pos/items?branch_id=&barcode= | &q= : sellable items from the local copies, priced by the §5.2 rule."""
-
     permission_classes = [HasRole(CASHIER, BRANCH_MANAGER, branch_from="branch_id")]
 
     def get(self, request):

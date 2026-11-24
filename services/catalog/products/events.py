@@ -1,5 +1,3 @@
-"""Payloads of the events Catalog publishes (design doc §6.3, E2-E4). Call inside transaction.atomic()."""
-
 from retail_common.events import publish_event
 
 from .models import Price, Sku, SupplierSku
@@ -8,8 +6,6 @@ CURRENCY = "USD"
 
 
 def publish_sku(sku: Sku) -> None:
-    """product.upserted (E2) for one SKU, plus supplier_terms.changed (E4) for its suppliers,
-    whose payload carries the SKU's pack_size."""
     product = sku.product
     publish_event(
         "product.upserted",

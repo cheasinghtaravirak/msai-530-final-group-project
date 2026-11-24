@@ -7,12 +7,8 @@ from .models import SupplierTerms
 
 @handles("supplier_terms.changed")
 def on_supplier_terms_changed(event: dict) -> None:
-    """Keep only the preferred supplier's terms per SKU (one row per SKU).
-
-    Events for different suppliers sit on different partitions, so a promotion can arrive before
-    an older one, and a demotion before the promotion that replaced it. A demotion deletes the
-    row only if it is still that supplier's, and an older promotion never overwrites a newer one.
-    """
+    # The topic key is supplier_id:sku (design doc §6.4), so two suppliers' events for one SKU can
+    # arrive out of order. A demotion only deletes its own row, and an older promotion never wins.
     p = event["payload"]
     if not p["is_preferred"]:
         SupplierTerms.objects.filter(sku=p["sku"], supplier_id=p["supplier_id"]).delete()

@@ -3,12 +3,15 @@ from retail_common.consumer import handles
 from .models import PriceCache, ProductCache
 
 
+def release_barcode(barcode: str, keep_sku: str) -> None:
+    ProductCache.objects.filter(barcode=barcode).exclude(sku=keep_sku).update(barcode=None)
+
+
 @handles("product.upserted")
 def on_product_upserted(event: dict) -> None:
     p = event["payload"]
     if p["barcode"]:
-        # A barcode moved to another SKU: free it first so the unique index holds whatever the event order.
-        ProductCache.objects.filter(barcode=p["barcode"]).exclude(sku=p["sku"]).update(barcode=None)
+        release_barcode(p["barcode"], keep_sku=p["sku"])
     ProductCache.objects.update_or_create(
         sku=p["sku"], defaults={"barcode": p["barcode"], "name": p["name"], "active": p["status"] == "ACTIVE"}
     )

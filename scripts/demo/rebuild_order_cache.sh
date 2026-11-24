@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Wipe Order's product and price caches and rebuild them from the compacted topics
-# (implementation plan §8, Phase 2 exit check).
-#
-# A wiped consumer loses its processed_event rows for those events too. Otherwise every
-# replayed event would be skipped as a duplicate and the caches would stay empty.
-#
-#   scripts/demo/rebuild_order_cache.sh
+# Wipe Order's product and price caches and rebuild them from the compacted topics.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -21,8 +15,11 @@ echo "order before: $(counts)"
 docker compose stop order-worker
 docker compose exec -T kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --bootstrap-server localhost:9092 --delete --group order
-sql order_db "TRUNCATE product_cache, price_cache;
-  DELETE FROM processed_event WHERE event_type IN ('product.upserted', 'price.changed');" >/dev/null
+sql order_db "TRUNCATE product_cache, price_cache" >/dev/null
+forget_replayed_events() {
+  sql order_db "DELETE FROM processed_event WHERE event_type IN ('product.upserted', 'price.changed')" >/dev/null
+}
+forget_replayed_events
 echo "order wiped:  $(counts)"
 
 docker compose start order-worker

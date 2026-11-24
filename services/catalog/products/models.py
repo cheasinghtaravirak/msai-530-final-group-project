@@ -1,5 +1,3 @@
-"""catalog_db (design doc §5.2): category, product, sku, price, supplier, supplier_sku."""
-
 import uuid
 
 from django.db import models
@@ -43,7 +41,6 @@ class Sku(models.Model):
 
     sku = models.CharField(primary_key=True, max_length=50)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="skus", db_column="product_id")
-    # The design doc's SKU has no name; a product sold in two sizes needs one per SKU at the till.
     name = models.CharField(max_length=200)
     barcode = models.CharField(max_length=50, unique=True, null=True, blank=True)
     unit = models.CharField(max_length=2, choices=Unit.choices, default=Unit.EA)
@@ -58,7 +55,7 @@ class Sku(models.Model):
 class Price(models.Model):
     pk = models.CompositePrimaryKey("sku_id", "branch_scope", "valid_from")
     sku = models.ForeignKey(Sku, on_delete=models.PROTECT, related_name="prices", db_column="sku", db_index=False)
-    branch_scope = models.CharField(max_length=10)  # a branch_id or ALL
+    branch_scope = models.CharField(max_length=10)
     valid_from = models.DateField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 

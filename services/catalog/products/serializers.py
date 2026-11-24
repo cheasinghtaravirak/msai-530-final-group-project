@@ -68,7 +68,6 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 def _upsert_skus(product: Product, skus: list[dict]) -> None:
-    """Each entry replaces that SKU's fields. SKUs not listed are left alone."""
     for fields in skus:
         code = fields.pop("sku")
         if Sku.objects.filter(pk=code).exclude(product=product).exists():

@@ -37,7 +37,6 @@ interface Sku {
   barcode: string;
   unit: string;
   pack_size: number;
-  /** Today's company-wide (ALL) price. */
   price: string | null;
 }
 
@@ -295,7 +294,7 @@ function EditProductForm({
   );
 }
 
-// Today in the company's time zone, which the services price by; en-CA gives the YYYY-MM-DD a date input expects.
+// en-CA gives the YYYY-MM-DD a date input expects.
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Phnom_Penh" });
 
 function PriceEditor({ sku }: { sku: Sku }) {

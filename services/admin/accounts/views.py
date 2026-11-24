@@ -115,8 +115,6 @@ class BranchDetailView(APIView):
 
 
 class BranchCloseView(APIView):
-    """POST /branches/{id}/close (HQ): status CLOSED, revoke the branch's role grants, publish E1."""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def post(self, request, branch_id):
@@ -130,8 +128,6 @@ class BranchCloseView(APIView):
 
 
 class UserListView(APIView):
-    """GET /users?q= · POST /users {email, full_name, password} (HQ only)"""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def get(self, request):
@@ -148,8 +144,6 @@ class UserListView(APIView):
 
 
 class UserDetailView(APIView):
-    """GET /users/{id} · PATCH /users/{id} {full_name, status, password} (HQ only)"""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def get(self, request, user_id):
@@ -163,8 +157,6 @@ class UserDetailView(APIView):
 
 
 class UserRolesView(APIView):
-    """POST /users/{id}/roles {role_code, branch_id} (HQ only). Granting a role the user already has returns it."""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def post(self, request, user_id):
@@ -180,8 +172,6 @@ class UserRolesView(APIView):
 
 
 class UserRoleDetailView(APIView):
-    """DELETE /users/{id}/roles/{grant_id} (HQ only): revoke the grant. It takes effect at the user's next login."""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def delete(self, request, user_id, grant_id):

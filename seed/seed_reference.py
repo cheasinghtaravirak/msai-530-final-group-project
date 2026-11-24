@@ -22,7 +22,7 @@ from decimal import Decimal
 from generate_history import CATALOGUE, CATEGORIES
 
 PASSWORD = "demo1234"
-BASE_PRICES_FROM = date(2025, 1, 1)  # before the first day of generated history
+BASE_PRICES_FROM = date(2025, 1, 1)
 BARCODE_PREFIX = "884"  # GS1 prefix for Cambodia
 SUPPLIER_COST_SHARE = Decimal("0.70")
 RETRIES = 5
@@ -37,7 +37,6 @@ BRANCHES = [
 
 PRODUCT_NAMES = {code: name for _, products, _ in CATEGORIES for code, name, _ in products}
 
-# Units per supplier case; reorder quantities round up to it.
 CASE_SIZE = {"Beverages": 24, "Snacks": 12, "Dairy": 12, "Bakery": 6, "Produce": 1, "Frozen": 12}
 DEFAULT_CASE_SIZE = 12
 LEAD_TIME_DAYS = {"Produce": 1, "Bakery": 1, "Dairy": 2, "Frozen": 3}

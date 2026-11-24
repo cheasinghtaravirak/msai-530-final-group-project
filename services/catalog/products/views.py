@@ -25,8 +25,6 @@ READERS = (HQ_ADMIN, BRANCH_MANAGER)
 
 
 class HqWrites:
-    """Reads for HQ and managers, writes for HQ only."""
-
     def get_permissions(self):
         if self.request.method == "GET":
             return [HasRole(*READERS)()]
@@ -40,7 +38,6 @@ def paginate(view, request, items, serialize):
 
 
 def products_data(products) -> list[dict]:
-    """Products with their SKUs and each SKU's company-wide (ALL) price today."""
     data = ProductSerializer(products, many=True).data
     prices = current_prices([s["sku"] for p in data for s in p["skus"]], ALL_BRANCHES, timezone.localdate())
     for product in data:
@@ -60,8 +57,6 @@ def price_data(price: Price) -> dict:
 
 
 class CategoryListView(HqWrites, APIView):
-    """GET /categories · POST /categories {name, parent_id}"""
-
     def get(self, request):
         return paginate(self, request, Category.objects.all(), lambda page: CategorySerializer(page, many=True).data)
 
@@ -73,8 +68,6 @@ class CategoryListView(HqWrites, APIView):
 
 
 class ProductListView(HqWrites, APIView):
-    """GET /products?q=&category_id=&status= · POST /products (publishes E2 per SKU)"""
-
     def get(self, request):
         qs = Product.objects.select_related("category").prefetch_related("skus")
         q = request.query_params.get("q", "").strip()
@@ -99,8 +92,6 @@ class ProductListView(HqWrites, APIView):
 
 
 class ProductDetailView(HqWrites, APIView):
-    """GET /products/{id} · PATCH /products/{id} (publishes E2 for every SKU of the product)"""
-
     def get(self, request, product_id):
         product = get_object_or_404(Product.objects.select_related("category"), pk=product_id)
         return Response(products_data([product])[0])
@@ -117,8 +108,6 @@ class ProductDetailView(HqWrites, APIView):
 
 
 class SkuDetailView(APIView):
-    """GET /skus/{sku}: the SKU and every price row."""
-
     permission_classes = [HasRole(*READERS)]
 
     def get(self, request, sku):
@@ -133,8 +122,6 @@ class SkuDetailView(APIView):
 
 
 class PriceView(APIView):
-    """GET /prices/{sku}?branch_id= (S6: today's price by the §5.2 rule) · PUT /prices/{sku} (HQ, publishes E3)"""
-
     def get_permissions(self):
         if self.request.method == "GET":
             return [(IsInternalService | HasRole(HQ_ADMIN, BRANCH_MANAGER, CASHIER, branch_from="branch_id"))()]
@@ -175,8 +162,6 @@ class PriceView(APIView):
 
 
 class SupplierListView(APIView):
-    """GET /suppliers · POST /suppliers (HQ)"""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def get(self, request):
@@ -190,8 +175,6 @@ class SupplierListView(APIView):
 
 
 class SupplierDetailView(APIView):
-    """PATCH /suppliers/{id} (HQ). A lead time change republishes E4 for every SKU the supplier sells."""
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def patch(self, request, supplier_id):
@@ -206,11 +189,6 @@ class SupplierDetailView(APIView):
 
 
 class SupplierSkuView(APIView):
-    """PUT /suppliers/{id}/skus/{sku} {unit_cost, min_order_qty, is_preferred} (HQ, publishes E4).
-
-    Making one supplier preferred demotes the SKU's other preferred supplier, and publishes that too.
-    """
-
     permission_classes = [HasRole(HQ_ADMIN)]
 
     def put(self, request, supplier_id, sku):

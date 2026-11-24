@@ -13,7 +13,6 @@ export function humanize(value: string): string {
 
 const USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
-/** "1.70" -> "$1.70". */
 export function formatMoney(amount: string): string {
   return USD.format(Number(amount));
 }

@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-import caches.handlers  # noqa: F401 - registers the event handlers
+import caches.handlers  # noqa: F401
 import pytest
 from caches.models import ProductCache
 from caches.pricing import current_prices

@@ -1,5 +1,5 @@
 import pytest
-import refs.handlers  # noqa: F401 - registers the event handlers
+import refs.handlers  # noqa: F401
 from refs.models import SkuRef
 
 from retail_common.consumer import apply_event

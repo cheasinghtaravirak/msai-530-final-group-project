@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 
 import pytest
-import replenishment.handlers  # noqa: F401 - registers the event handlers
+import replenishment.handlers  # noqa: F401
 import reporting.handlers  # noqa: F401
 from replenishment.models import SupplierTerms
 from reporting.models import Calendar, DimProduct
@@ -56,10 +56,8 @@ def test_non_preferred_terms_are_not_stored():
     assert preferred_supplier() == []
 
 
-# Events of one supplier share a partition and keep their order, so OLD's two events never swap.
 @pytest.mark.parametrize("order", [(0, 1, 2), (0, 2, 1), (2, 0, 1)])
 def test_a_preferred_supplier_swap_converges_in_any_arrival_order(order):
-    # OLD is preferred, then NEW is promoted, which demotes OLD in the same Catalog transaction.
     published = [terms_event(OLD, True), terms_event(OLD, False), terms_event(NEW, True, lead_time_days=5)]
 
     for i in order:
