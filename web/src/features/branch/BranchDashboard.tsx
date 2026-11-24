@@ -11,8 +11,8 @@ export function BranchDashboard() {
     <Stack>
       <Title order={2}>Branch dashboard</Title>
       <Text c="dimmed">
-        {ids === null ? "All branches" : ids.join(", ")}: today so far, stock, forecasts and reorder suggestions arrive in
-        Phases 3–4.
+        {ids === null ? "All branches" : ids.join(", ")}: today so far, stock, forecasts and reorder suggestions arrive
+        in Phases 3–4.
       </Text>
     </Stack>
   );

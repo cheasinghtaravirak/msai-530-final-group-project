@@ -113,9 +113,23 @@ function NewBranchForm({ onDone }: { onDone: () => void }) {
           value={form.branch_id}
           onChange={(e) => setForm({ ...form, branch_id: e.currentTarget.value.toUpperCase() })}
         />
-        <TextInput label="Name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.currentTarget.value })} />
-        <Select label="Region" data={REGIONS} value={form.region} onChange={(v) => setForm({ ...form, region: v ?? REGIONS[0] })} />
-        <TextInput label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.currentTarget.value })} />
+        <TextInput
+          label="Name"
+          required
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.currentTarget.value })}
+        />
+        <Select
+          label="Region"
+          data={REGIONS}
+          value={form.region}
+          onChange={(v) => setForm({ ...form, region: v ?? REGIONS[0] })}
+        />
+        <TextInput
+          label="Address"
+          value={form.address}
+          onChange={(e) => setForm({ ...form, address: e.currentTarget.value })}
+        />
         <Button type="submit" loading={create.isPending}>
           Create
         </Button>
