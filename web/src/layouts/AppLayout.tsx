@@ -16,6 +16,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconBox,
   IconBuildingStore,
   IconCashRegister,
   IconChartBar,
@@ -60,6 +61,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Branch",
     items: [
       { label: "Branch dashboard", to: "/branch", icon: IconChartBar, roles: ["HQ_ADMIN", "BRANCH_MANAGER"] },
+      { label: "Stock", to: "/branch/stock", icon: IconBox, roles: ["BRANCH_MANAGER"] },
       { label: "Sales history", to: "/branch/sales", icon: IconReceiptRefund, roles: ["BRANCH_MANAGER"] },
     ],
   },

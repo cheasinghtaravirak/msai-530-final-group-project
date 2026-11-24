@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthContext";
 import { RequireRole } from "./auth/RequireRole";
 import { homePath } from "./auth/roles";
 import { BranchDashboard } from "./features/branch/BranchDashboard";
+import { StockPage } from "./features/branch/StockPage";
 import { BranchesPage } from "./features/hq/BranchesPage";
 import { HqDashboard } from "./features/hq/HqDashboard";
 import { JobsPage } from "./features/hq/JobsPage";
@@ -69,6 +70,14 @@ export function App() {
           element={
             <RequireRole roles={["HQ_ADMIN", "BRANCH_MANAGER"]}>
               <BranchDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="branch/stock"
+          element={
+            <RequireRole roles={["BRANCH_MANAGER"]}>
+              <StockPage />
             </RequireRole>
           }
         />
