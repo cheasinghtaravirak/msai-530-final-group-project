@@ -7,4 +7,9 @@ urlpatterns = [
     path("auth/me", views.MeView.as_view()),
     path("branches", views.BranchListView.as_view()),
     path("branches/<str:branch_id>", views.BranchDetailView.as_view()),
+    path("branches/<str:branch_id>/close", views.BranchCloseView.as_view()),
+    path("users", views.UserListView.as_view()),
+    path("users/<uuid:user_id>", views.UserDetailView.as_view()),
+    path("users/<uuid:user_id>/roles", views.UserRolesView.as_view()),
+    path("users/<uuid:user_id>/roles/<uuid:grant_id>", views.UserRoleDetailView.as_view()),
 ]

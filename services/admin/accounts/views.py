@@ -1,5 +1,7 @@
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -9,8 +11,8 @@ from retail_common.api import ApiError
 from retail_common.auth import BRANCH_MANAGER, CASHIER, HQ_ADMIN, HasRole
 from retail_common.events import publish_event
 
-from .models import AppUser, Branch, Shop
-from .serializers import BranchSerializer, LoginSerializer, branch_event_payload
+from .models import AppUser, Branch, RoleGrant, Shop
+from .serializers import BranchSerializer, LoginSerializer, RoleGrantSerializer, UserSerializer, branch_event_payload
 from .tokens import issue_token
 
 
@@ -110,3 +112,81 @@ class BranchDetailView(APIView):
             branch = serializer.save()
             publish_event("branch.upserted", branch_event_payload(branch), key=branch.branch_id)
         return Response(BranchSerializer(branch).data)
+
+
+class BranchCloseView(APIView):
+    """POST /branches/{id}/close (HQ): status CLOSED, revoke the branch's role grants, publish E1."""
+
+    permission_classes = [HasRole(HQ_ADMIN)]
+
+    def post(self, request, branch_id):
+        with transaction.atomic():
+            branch = get_object_or_404(Branch.objects.select_for_update(), pk=branch_id)
+            branch.status = Branch.Status.CLOSED
+            branch.save(update_fields=["status"])
+            branch.grants.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
+            publish_event("branch.upserted", branch_event_payload(branch), key=branch.branch_id)
+        return Response(BranchSerializer(branch).data)
+
+
+class UserListView(APIView):
+    """GET /users?q= · POST /users {email, full_name, password} (HQ only)"""
+
+    permission_classes = [HasRole(HQ_ADMIN)]
+
+    def get(self, request):
+        qs = AppUser.objects.all()
+        if q := request.query_params.get("q", "").strip():
+            qs = qs.filter(Q(email__icontains=q) | Q(full_name__icontains=q))
+        return Response({"results": UserSerializer(qs, many=True).data, "count": qs.count()})
+
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UserDetailView(APIView):
+    """GET /users/{id} · PATCH /users/{id} {full_name, status, password} (HQ only)"""
+
+    permission_classes = [HasRole(HQ_ADMIN)]
+
+    def get(self, request, user_id):
+        return Response(UserSerializer(get_object_or_404(AppUser, pk=user_id)).data)
+
+    def patch(self, request, user_id):
+        serializer = UserSerializer(get_object_or_404(AppUser, pk=user_id), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class UserRolesView(APIView):
+    """POST /users/{id}/roles {role_code, branch_id} (HQ only). Granting a role the user already has returns it."""
+
+    permission_classes = [HasRole(HQ_ADMIN)]
+
+    def post(self, request, user_id):
+        user = get_object_or_404(AppUser, pk=user_id)
+        serializer = RoleGrantSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        existing = user.active_grants().filter(role_code=data["role_code"], branch=data["branch"]).first()
+        if existing:
+            return Response(RoleGrantSerializer(existing).data)
+        grant = serializer.save(user=user)
+        return Response(RoleGrantSerializer(grant).data, status=status.HTTP_201_CREATED)
+
+
+class UserRoleDetailView(APIView):
+    """DELETE /users/{id}/roles/{grant_id} (HQ only): revoke the grant. It takes effect at the user's next login."""
+
+    permission_classes = [HasRole(HQ_ADMIN)]
+
+    def delete(self, request, user_id, grant_id):
+        grant = get_object_or_404(RoleGrant, pk=grant_id, user_id=user_id)
+        if grant.revoked_at is None:
+            grant.revoked_at = timezone.now()
+            grant.save(update_fields=["revoked_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
