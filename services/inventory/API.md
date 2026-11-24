@@ -77,16 +77,20 @@ The ledger for one SKU at one branch, newest first, paginated:
 ## POST /adjustments
 
 ```json
-{"branch_id": "BR-04", "sku": "COKE-330", "qty_delta": -3, "note": "Count after breakage"}
+{"adjustment_id": "3f2b…", "branch_id": "BR-04", "sku": "COKE-330", "qty_delta": -3, "note": "Count after breakage"}
 ```
 
 `qty_delta` is non-zero. Writes an `ADJUST` movement, updates `on_hand`, and returns the new stock row with 201, in the `GET /stock` row shape. A SKU that Inventory does not know returns 404 `UNKNOWN_SKU`.
 
+`adjustment_id` is a UUID the client generates once per adjustment and sends again on every retry. It becomes the movement's `source_ref`. A second POST with the same `adjustment_id` writes nothing and returns 200 with the SKU's current stock row, whatever its other fields say, so a retry after a network error never adjusts twice. The same `adjustment_id` at another branch returns 409 `ADJUSTMENT_ID_CONFLICT`.
+
 ## POST /receipts
 
 ```json
-{"po_id": null, "branch_id": "BR-04", "lines": [{"sku": "COKE-330", "qty": 48}]}
+{"receipt_id": "9c41…", "po_id": null, "branch_id": "BR-04", "lines": [{"sku": "COKE-330", "qty": 48}]}
 ```
+
+- `receipt_id` is a UUID the client generates once per receipt and sends again on every retry. A second POST with the same `receipt_id` writes nothing and returns 200 with the stored receipt, so a retry never receives the goods twice. The same `receipt_id` at another branch returns 409 `RECEIPT_ID_CONFLICT`.
 
 - `po_id` is `null` or absent for an ad hoc receipt (Phase 3). Until Phase 4, a receipt against a PO returns 400 `VALIDATION_ERROR`.
 - Against a PO (Phase 4), a receipt may be partial or full. Each line raises `qty_received` on the PO line, raises `on_hand` and lowers `on_order`. The PO becomes `PARTIAL`, or `RECEIVED` when every line is fully received.

@@ -21,7 +21,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { api } from "../../api/client";
+import { api, outcomeUnknown } from "../../api/client";
 import type { Movement, Page, StockRow } from "../../api/types";
 import { useBranch } from "../../auth/BranchContext";
 import { EmptyState, ErrorState, formatDateTime, humanize, PageHeader, TableSkeleton } from "../../ui";
@@ -314,13 +314,14 @@ function AdjustForm({ branchId, row, onDone }: { branchId: string; row: StockRow
   const queryClient = useQueryClient();
   const [delta, setDelta] = useState<number | string>("");
   const [note, setNote] = useState("");
+  const [adjustmentId] = useState(() => crypto.randomUUID());
   const qty = typeof delta === "number" ? delta : NaN;
   const valid = Number.isInteger(qty) && qty !== 0 && note.trim() !== "";
   const adjust = useMutation({
     mutationFn: () =>
       api<StockRow>("/inventory/adjustments", {
         method: "POST",
-        json: { branch_id: branchId, sku: row.sku, qty_delta: qty, note: note.trim() },
+        json: { adjustment_id: adjustmentId, branch_id: branchId, sku: row.sku, qty_delta: qty, note: note.trim() },
       }),
     onSuccess: (r) => {
       notifications.show({ color: "green", message: `${r.sku} now has ${r.on_hand} on hand` });
@@ -331,6 +332,9 @@ function AdjustForm({ branchId, row, onDone }: { branchId: string; row: StockRow
     },
   });
 
+  // Retrying an unanswered request must resend what may already be saved.
+  const unsure = adjust.isError && outcomeUnknown(adjust.error);
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (valid) adjust.mutate();
@@ -339,7 +343,14 @@ function AdjustForm({ branchId, row, onDone }: { branchId: string; row: StockRow
   return (
     <form onSubmit={onSubmit}>
       <Stack>
-        {adjust.error && <Alert color="red">{adjust.error.message}</Alert>}
+        {adjust.error &&
+          (unsure ? (
+            <Alert color="yellow" title="Not sure the adjustment was saved">
+              {adjust.error.message}. Save again to retry. It will not be applied twice.
+            </Alert>
+          ) : (
+            <Alert color="red">{adjust.error.message}</Alert>
+          ))}
         <Text size="sm" c="dimmed">
           {row.name || row.sku} has {row.on_hand} on hand. Enter a positive number to add stock or a negative number to
           remove it.
@@ -349,6 +360,7 @@ function AdjustForm({ branchId, row, onDone }: { branchId: string; row: StockRow
           placeholder="-3"
           required
           allowDecimal={false}
+          disabled={unsure}
           value={delta}
           onChange={setDelta}
           description={Number.isInteger(qty) && qty !== 0 ? `On hand becomes ${row.on_hand + qty}` : undefined}
@@ -357,6 +369,7 @@ function AdjustForm({ branchId, row, onDone }: { branchId: string; row: StockRow
           label="Note"
           placeholder="Count after breakage"
           required
+          disabled={unsure}
           value={note}
           onChange={(e) => setNote(e.currentTarget.value)}
         />

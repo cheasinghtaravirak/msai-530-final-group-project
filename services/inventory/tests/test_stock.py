@@ -27,6 +27,20 @@ def known_skus():
     SkuRef.objects.create(sku=BREAD, name="Test bread", category_id=CATEGORY)
 
 
+def adjustment(**fields):
+    return {
+        "adjustment_id": str(uuid.uuid4()),
+        "branch_id": BRANCH,
+        "sku": COLA,
+        "qty_delta": 1,
+        "note": "Count",
+    } | fields
+
+
+def receipt_body(**fields):
+    return {"receipt_id": str(uuid.uuid4()), "branch_id": BRANCH, "lines": [{"sku": COLA, "qty": 1}]} | fields
+
+
 def client_for(role, branch_id=BRANCH):
     client = APIClient()
     client.force_authenticate(TokenUser(id=MANAGER_ID, roles=[{"role": role, "branch_id": branch_id}]))
@@ -142,9 +156,7 @@ def test_stock_list_filters_low_and_negative(manager):
 
 
 def test_adjustment_writes_an_adjust_movement_with_its_author(manager):
-    response = manager.post(
-        "/adjustments", {"branch_id": BRANCH, "sku": COLA, "qty_delta": -3, "note": "Breakage"}, format="json"
-    )
+    response = manager.post("/adjustments", adjustment(qty_delta=-3, note="Breakage"), format="json")
 
     assert response.status_code == 201
     assert response.json() == {"sku": COLA, "name": "Test cola", "on_hand": -3, "on_order": 0, "low": True}
@@ -163,8 +175,8 @@ def test_adjustment_writes_an_adjust_movement_with_its_author(manager):
 
 
 def test_adjustment_refuses_zero_and_unknown_skus(manager):
-    zero = manager.post("/adjustments", {"branch_id": BRANCH, "sku": COLA, "qty_delta": 0}, format="json")
-    unknown = manager.post("/adjustments", {"branch_id": BRANCH, "sku": "TEST-NOPE", "qty_delta": 1}, format="json")
+    zero = manager.post("/adjustments", adjustment(qty_delta=0), format="json")
+    unknown = manager.post("/adjustments", adjustment(sku="TEST-NOPE"), format="json")
 
     assert zero.status_code == 400
     assert unknown.status_code == 404
@@ -172,7 +184,7 @@ def test_adjustment_refuses_zero_and_unknown_skus(manager):
 
 
 def test_ad_hoc_receipt_writes_one_receipt_movement_per_line(manager):
-    body = {"branch_id": BRANCH, "lines": [{"sku": COLA, "qty": 48}, {"sku": BREAD, "qty": 6}]}
+    body = receipt_body(lines=[{"sku": COLA, "qty": 48}, {"sku": BREAD, "qty": 6}])
 
     response = manager.post("/receipts", body, format="json")
 
@@ -189,8 +201,8 @@ def test_ad_hoc_receipt_writes_one_receipt_movement_per_line(manager):
 
 
 def test_receipt_refuses_a_po_and_repeated_skus(manager):
-    po = {"po_id": str(uuid.uuid4()), "branch_id": BRANCH, "lines": [{"sku": COLA, "qty": 1}]}
-    twice = {"branch_id": BRANCH, "lines": [{"sku": COLA, "qty": 1}, {"sku": COLA, "qty": 2}]}
+    po = receipt_body(po_id=str(uuid.uuid4()))
+    twice = receipt_body(lines=[{"sku": COLA, "qty": 1}, {"sku": COLA, "qty": 2}])
 
     assert manager.post("/receipts", po, format="json").json()["error"]["code"] == "VALIDATION_ERROR"
     assert manager.post("/receipts", twice, format="json").status_code == 400
@@ -213,10 +225,35 @@ def test_every_endpoint_is_scoped_to_the_managers_branches():
 def test_a_sku_longer_than_40_characters_is_refused(manager):
     long_sku = "TEST-" + "X" * 36
 
-    adjustment = manager.post(
-        "/adjustments", {"branch_id": BRANCH, "sku": long_sku, "qty_delta": 1, "note": "Count"}, format="json"
-    )
-    receipt = manager.post("/receipts", {"branch_id": BRANCH, "lines": [{"sku": long_sku, "qty": 1}]}, format="json")
+    adjusted = manager.post("/adjustments", adjustment(sku=long_sku), format="json")
+    received = manager.post("/receipts", receipt_body(lines=[{"sku": long_sku, "qty": 1}]), format="json")
     stock = manager.get("/stock", {"branch_id": BRANCH, "sku": long_sku})
 
-    assert (adjustment.status_code, receipt.status_code, stock.status_code) == (400, 400, 400)
+    assert (adjusted.status_code, received.status_code, stock.status_code) == (400, 400, 400)
+
+
+def test_an_adjustment_sent_twice_moves_stock_once(manager):
+    body = adjustment(qty_delta=-2)
+
+    first = manager.post("/adjustments", body, format="json")
+    again = manager.post("/adjustments", body | {"qty_delta": 5}, format="json")
+    elsewhere = client_for(BRANCH_MANAGER, OTHER_BRANCH).post(
+        "/adjustments", body | {"branch_id": OTHER_BRANCH}, format="json"
+    )
+
+    assert (first.status_code, again.status_code, elsewhere.status_code) == (201, 200, 409)
+    assert again.json() == first.json()
+    assert StockMovement.objects.filter(source_ref=body["adjustment_id"]).count() == 1
+    assert on_hand(COLA) == -2
+
+
+def test_a_receipt_sent_twice_receives_once(manager):
+    body = receipt_body(lines=[{"sku": COLA, "qty": 48}])
+
+    first = manager.post("/receipts", body, format="json")
+    again = manager.post("/receipts", body, format="json")
+
+    assert (first.status_code, again.status_code) == (201, 200)
+    assert again.json() == first.json()
+    assert StockMovement.objects.filter(source_ref=body["receipt_id"]).count() == 1
+    assert on_hand(COLA) == 48
