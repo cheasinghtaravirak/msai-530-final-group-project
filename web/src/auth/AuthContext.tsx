@@ -41,8 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const logout = useCallback(() => {
+    // Only the session: a saved sale stays, keyed by user and branch, so an unconfirmed one can still be retried.
     try {
-      sessionStorage.clear();
+      sessionStorage.removeItem(STORAGE_KEY);
     } catch {
       /* storage unavailable */
     }
