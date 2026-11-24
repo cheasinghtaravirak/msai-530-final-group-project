@@ -9,12 +9,13 @@ from stock.views import local_iso, require_known_skus
 
 from retail_common.api import ApiError
 from retail_common.auth import BRANCH_MANAGER, HasRole
+from retail_common.models import SKU_MAX_LENGTH
 
 from .models import GoodsReceipt, ReceiptLine
 
 
 class ReceiptLineInput(serializers.Serializer):
-    sku = serializers.CharField(max_length=50)
+    sku = serializers.CharField(max_length=SKU_MAX_LENGTH)
     qty = serializers.IntegerField(min_value=1, max_value=100_000)
 
 

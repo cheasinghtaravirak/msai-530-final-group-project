@@ -1,5 +1,7 @@
 from django.db import models
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class BranchRef(models.Model):
     CLOSED = "CLOSED"
@@ -12,7 +14,7 @@ class BranchRef(models.Model):
 
 
 class ProductCache(models.Model):
-    sku = models.CharField(primary_key=True, max_length=50)
+    sku = models.CharField(primary_key=True, max_length=SKU_MAX_LENGTH)
     barcode = models.CharField(max_length=50, unique=True, null=True, blank=True)
     name = models.CharField(max_length=200)
     active = models.BooleanField(default=True)
@@ -28,7 +30,7 @@ class PriceCache(models.Model):
 
     pk = models.CompositePrimaryKey("sku", "branch_scope", "valid_from")
     # No FK to product_cache: price.changed and product.upserted are separate topics and may arrive in either order.
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     branch_scope = models.CharField(max_length=10)
     valid_from = models.DateField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)

@@ -1,10 +1,11 @@
 from rest_framework import serializers
 
 from retail_common.api import ApiError
+from retail_common.models import SKU_MAX_LENGTH
 
 from .models import Category, Product, Sku, Supplier
 
-SKU_CODE = r"^[A-Z0-9][A-Z0-9-]{0,39}$"
+SKU_CODE = rf"^[A-Z0-9][A-Z0-9-]{{0,{SKU_MAX_LENGTH - 1}}}$"
 BRANCH_SCOPE = r"^(ALL|BR-\d{2,4})$"
 MONEY = {"max_digits": 12, "decimal_places": 2, "min_value": 0}
 

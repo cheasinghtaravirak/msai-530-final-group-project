@@ -208,3 +208,15 @@ def test_every_endpoint_is_scoped_to_the_managers_branches():
         assert client.post("/adjustments", adjust, format="json").status_code == 403
         receive = {"branch_id": BRANCH, "lines": [{"sku": COLA, "qty": 1}]}
         assert client.post("/receipts", receive, format="json").status_code == 403
+
+
+def test_a_sku_longer_than_40_characters_is_refused(manager):
+    long_sku = "TEST-" + "X" * 36
+
+    adjustment = manager.post(
+        "/adjustments", {"branch_id": BRANCH, "sku": long_sku, "qty_delta": 1, "note": "Count"}, format="json"
+    )
+    receipt = manager.post("/receipts", {"branch_id": BRANCH, "lines": [{"sku": long_sku, "qty": 1}]}, format="json")
+    stock = manager.get("/stock", {"branch_id": BRANCH, "sku": long_sku})
+
+    assert (adjustment.status_code, receipt.status_code, stock.status_code) == (400, 400, 400)

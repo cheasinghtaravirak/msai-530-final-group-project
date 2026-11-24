@@ -51,3 +51,12 @@ def test_patch_with_complete_skus_adds_them(hq, product):
 
     assert response.status_code == 200
     assert Sku.objects.get(pk="TEST-COLA-2").pack_size == 6
+
+
+def test_a_sku_code_is_at_most_40_characters(hq, product):
+    def add(code):
+        sku = {"sku": code, "name": "Test", "barcode": None, "unit": "EA", "pack_size": 1}
+        return hq.patch(f"/products/{product.product_id}", {"skus": [sku]}, format="json")
+
+    assert add("TEST-" + "X" * 36).status_code == 400
+    assert add("TEST-" + "X" * 35).status_code == 200

@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from retail_common.api import ApiError, Pagination
 from retail_common.auth import BRANCH_MANAGER, HasRole
+from retail_common.models import SKU_MAX_LENGTH
 
 from .ledger import Cause, move_stock
 from .models import MovementReason, StockLevel, StockMovement
@@ -52,7 +53,7 @@ def paginated(request, view, queryset, to_rows) -> Response:
 
 class StockQuery(serializers.Serializer):
     branch_id = serializers.CharField(max_length=10)
-    sku = serializers.CharField(max_length=50, required=False)
+    sku = serializers.CharField(max_length=SKU_MAX_LENGTH, required=False)
     q = serializers.CharField(max_length=100, required=False)
     low_only = serializers.BooleanField(default=False)
     negative_only = serializers.BooleanField(default=False)
@@ -104,7 +105,7 @@ class MovementsView(APIView):
 
 class AdjustmentInput(serializers.Serializer):
     branch_id = serializers.CharField(max_length=10)
-    sku = serializers.CharField(max_length=50)
+    sku = serializers.CharField(max_length=SKU_MAX_LENGTH)
     qty_delta = serializers.IntegerField(min_value=-100_000, max_value=100_000)
     note = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
 

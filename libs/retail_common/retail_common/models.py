@@ -1,5 +1,8 @@
 from django.db import models
 
+# Every service stores a SKU code in a column this wide; Catalog refuses longer codes at input.
+SKU_MAX_LENGTH = 40
+
 
 class Outbox(models.Model):
     """Events waiting to be published. Written in the same transaction as the business change."""

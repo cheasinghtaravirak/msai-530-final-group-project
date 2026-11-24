@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from django.db.models import F, Q
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class Channel(models.TextChoices):
     POS = "POS"
@@ -63,7 +65,7 @@ class OrderLine(models.Model):
         SalesOrder, on_delete=models.PROTECT, related_name="lines", db_column="order_id", db_index=False
     )
     line_no = models.PositiveSmallIntegerField()
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     product_name_snapshot = models.CharField(max_length=200)
     unit_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2)
     qty = models.PositiveIntegerField()

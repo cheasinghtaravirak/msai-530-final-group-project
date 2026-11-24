@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from django.db.models import F, Q
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class MovementReason(models.TextChoices):
     SALE = "SALE"
@@ -23,7 +25,7 @@ class TransferStatus(models.TextChoices):
 class StockLevel(models.Model):
     pk = models.CompositePrimaryKey("branch_id", "sku")
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     on_hand = models.IntegerField(default=0)
     on_order = models.IntegerField(default=0)
     version = models.PositiveIntegerField(default=0)
@@ -40,7 +42,7 @@ class StockLevel(models.Model):
 class StockMovement(models.Model):
     movement_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     qty_delta = models.IntegerField()
     reason = models.CharField(max_length=20, choices=MovementReason.choices)
     source_ref = models.CharField(max_length=64)
@@ -82,7 +84,7 @@ class TransferLine(models.Model):
     transfer = models.ForeignKey(
         Transfer, on_delete=models.PROTECT, related_name="lines", db_column="transfer_id", db_index=False
     )
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     qty = models.PositiveIntegerField()
 
     class Meta:

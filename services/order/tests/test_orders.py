@@ -292,3 +292,10 @@ def test_sales_summary_needs_the_service_token_and_nets_refunds(cashier, manager
 
     ours = [row for row in response.json() if row["branch_id"] == BRANCH]
     assert ours == [{"branch_id": BRANCH, "order_count": 2, "total_amount": str(Decimal("4.90"))}]
+
+
+def test_a_sku_longer_than_40_characters_is_refused(cashier):
+    response = cashier.post("/orders", sale(lines=[{"sku": "TEST-" + "X" * 36, "qty": 1}]), format="json")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"

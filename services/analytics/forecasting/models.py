@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from django.db.models import F, Q
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class ForecastRun(models.Model):
     class Method(models.TextChoices):
@@ -32,7 +34,7 @@ class DemandForecast(models.Model):
     pk = models.CompositePrimaryKey("run_id", "branch_id", "sku", "target_date")
     run = models.ForeignKey(ForecastRun, on_delete=models.PROTECT, related_name="forecasts")
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     target_date = models.DateField()
     units_low = models.DecimalField(max_digits=10, decimal_places=2)
     units_mid = models.DecimalField(max_digits=10, decimal_places=2)
@@ -57,7 +59,7 @@ class SalesAnomaly(models.Model):
 
     anomaly_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     sale_date = models.DateField()
     run = models.ForeignKey(ForecastRun, on_delete=models.PROTECT, related_name="anomalies")
     actual_units = models.IntegerField()
