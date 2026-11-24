@@ -58,7 +58,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
   },
   {
     section: "Point of sale",
-    items: [{ label: "Register", to: "/pos", icon: IconCashRegister, roles: ["BRANCH_MANAGER", "CASHIER"] }],
+    items: [{ label: "Sell", to: "/pos", icon: IconCashRegister, roles: ["BRANCH_MANAGER", "CASHIER"] }],
   },
 ];
 

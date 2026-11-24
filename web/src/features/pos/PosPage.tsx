@@ -9,7 +9,7 @@ export function PosPage() {
 
   return (
     <Stack gap="xl">
-      <PageHeader title="Register" description={branchId ? `Selling at ${branchId}.` : undefined} />
+      <PageHeader title="Sell" description={branchId ? `Selling at ${branchId}.` : undefined} />
       <Card py="xl">
         <EmptyState icon={IconBarcode} title="The register opens in Phase 3">
           Scan or search for products, build the cart, take cash, card or QR payment and print the receipt, all on this
