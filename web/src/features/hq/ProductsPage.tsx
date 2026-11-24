@@ -308,6 +308,8 @@ function PriceEditor({ sku }: { sku: Sku }) {
   const [scope, setScope] = useState("ALL");
   const [amount, setAmount] = useState<number | string>(sku.price ? Number(sku.price) : "");
   const [validFrom, setValidFrom] = useState(today);
+  // NumberInput reports "1.50" as a string, to keep the trailing zero.
+  const value = amount === "" ? NaN : Number(amount);
   const save = useMutation({
     mutationFn: (value: number) =>
       api<PriceRow>(`/catalog/prices/${sku.sku}`, {
@@ -326,7 +328,7 @@ function PriceEditor({ sku }: { sku: Sku }) {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (typeof amount === "number") save.mutate(amount);
+    if (!Number.isNaN(value)) save.mutate(value);
   }
 
   const rows = [...(detail.data?.prices ?? [])].sort(
@@ -402,7 +404,7 @@ function PriceEditor({ sku }: { sku: Sku }) {
               onChange={(e) => setValidFrom(e.currentTarget.value)}
             />
           </Group>
-          <Button type="submit" loading={save.isPending} disabled={typeof amount !== "number"}>
+          <Button type="submit" loading={save.isPending} disabled={Number.isNaN(value)}>
             Save price
           </Button>
         </Stack>
