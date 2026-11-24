@@ -2,7 +2,7 @@ import os
 
 from retail_common.settings_base import *  # noqa: F403
 
-INSTALLED_APPS += ["reporting", "jobs"]  # noqa: F405
+INSTALLED_APPS += ["reporting", "forecasting", "replenishment", "insights", "jobs"]  # noqa: F405
 EVENT_HANDLER_MODULES = ["reporting.handlers"]
 
 # Local LLM (design doc §9.4)
