@@ -16,6 +16,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconBox,
   IconBuildingStore,
   IconCashRegister,
   IconChartBar,
@@ -27,6 +28,8 @@ import {
   IconMapPins,
   IconMoon,
   IconPackage,
+  IconReceipt,
+  IconReceiptRefund,
   IconSun,
   IconSunMoon,
   type Icon,
@@ -56,11 +59,18 @@ const NAV: { section: string; items: NavItem[] }[] = [
   },
   {
     section: "Branch",
-    items: [{ label: "Branch dashboard", to: "/branch", icon: IconChartBar, roles: ["HQ_ADMIN", "BRANCH_MANAGER"] }],
+    items: [
+      { label: "Branch dashboard", to: "/branch", icon: IconChartBar, roles: ["HQ_ADMIN", "BRANCH_MANAGER"] },
+      { label: "Stock", to: "/branch/stock", icon: IconBox, roles: ["BRANCH_MANAGER"] },
+      { label: "Sales history", to: "/branch/sales", icon: IconReceiptRefund, roles: ["BRANCH_MANAGER"] },
+    ],
   },
   {
     section: "Point of sale",
-    items: [{ label: "Sell", to: "/pos", icon: IconCashRegister, roles: ["BRANCH_MANAGER", "CASHIER"] }],
+    items: [
+      { label: "Sell", to: "/pos", icon: IconCashRegister, roles: ["BRANCH_MANAGER", "CASHIER"] },
+      { label: "Today's sales", to: "/pos/sales", icon: IconReceipt, roles: ["BRANCH_MANAGER", "CASHIER"] },
+    ],
   },
 ];
 

@@ -17,6 +17,19 @@ export function formatMoney(amount: string): string {
   return USD.format(Number(amount));
 }
 
+const BRANCH_TZ = "Asia/Phnom_Penh";
+
+/** Today at the branches as YYYY-MM-DD, the format a date input expects (en-CA writes dates that way). */
+export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: BRANCH_TZ });
+
+export function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { timeStyle: "short", timeZone: BRANCH_TZ });
+}
+
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: BRANCH_TZ });
+}
+
 export function PageHeader({
   title,
   description,
