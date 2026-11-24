@@ -108,6 +108,17 @@ def test_stock_current_keeps_only_the_newest_version_and_day_close_snapshots_it(
     assert (snapshot.closing_on_hand, snapshot.stockout_flag) == (0, True)
 
 
+def test_month_orders_count_only_the_closed_days_its_revenue_covers():
+    apply_event(completed(TODAY - timedelta(days=1)))
+    apply_event(completed(TODAY))
+    rollups.day_close(TODAY)
+
+    rollups.recompute_month(BRANCH, "2026-03", TODAY)
+
+    month = AggSalesMonthly.objects.get(branch_id=BRANCH, month="2026-03")
+    assert (month.orders, str(month.revenue), str(month.avg_basket)) == (1, "4.90", "4.90")
+
+
 def test_month_close_marks_a_month_final_only_when_all_its_days_are():
     apply_event(completed(LATE_DAY))
     rollups.day_close(TODAY)

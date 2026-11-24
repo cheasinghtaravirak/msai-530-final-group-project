@@ -53,9 +53,8 @@ def recompute_month(branch_id: str, month: str, today: date) -> None:
     if daily["revenue"] is None:
         AggSalesMonthly.objects.filter(branch_id=branch_id, month=month).delete()
         return
-    orders = FactSalesLine.objects.filter(branch_id=branch_id, sale_date__range=(first, last)).aggregate(n=SALE_ORDERS)[
-        "n"
-    ]
+    closed_days = AggSalesDaily.objects.filter(branch_id=branch_id, sale_date__range=(first, last)).values("sale_date")
+    orders = FactSalesLine.objects.filter(branch_id=branch_id, sale_date__in=closed_days).aggregate(n=SALE_ORDERS)["n"]
     final = last < today and daily["provisional"] == 0
     AggSalesMonthly.objects.update_or_create(
         branch_id=branch_id,
