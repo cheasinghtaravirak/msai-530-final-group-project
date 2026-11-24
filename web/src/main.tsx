@@ -10,6 +10,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App";
 import { AuthProvider } from "./auth/AuthContext";
+import { BranchProvider } from "./auth/BranchContext";
 
 const theme = createTheme({ primaryColor: "teal", defaultRadius: "md" });
 const queryClient = new QueryClient({
@@ -23,7 +24,9 @@ createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
-            <App />
+            <BranchProvider>
+              <App />
+            </BranchProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>
