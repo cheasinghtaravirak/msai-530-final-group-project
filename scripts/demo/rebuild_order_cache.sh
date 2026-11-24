@@ -15,9 +15,9 @@ echo "order before: $(counts)"
 docker compose stop order-worker
 docker compose exec -T kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --bootstrap-server localhost:9092 --delete --group order
-sql order_db "TRUNCATE product_cache, price_cache" >/dev/null
+sql order_db "TRUNCATE product_cache, price_cache, branch_ref" >/dev/null
 forget_replayed_events() {
-  sql order_db "DELETE FROM processed_event WHERE event_type IN ('product.upserted', 'price.changed')" >/dev/null
+  sql order_db "DELETE FROM processed_event WHERE event_type IN ('product.upserted', 'price.changed', 'branch.upserted')" >/dev/null
 }
 forget_replayed_events
 echo "order wiped:  $(counts)"
