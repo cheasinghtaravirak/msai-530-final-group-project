@@ -206,6 +206,13 @@ def test_own_branch_in_the_query_cannot_cover_another_branch_in_the_body(cashier
     assert not SalesOrder.objects.filter(branch_id=OTHER_BRANCH).exists()
 
 
+@pytest.mark.parametrize("body_branch", [[BRANCH], {"id": BRANCH}])
+def test_a_branch_id_that_is_not_a_string_is_refused_not_a_crash(cashier, body_branch):
+    for query in ("", f"?branch_id={BRANCH}"):
+        response = cashier.post(f"/orders{query}", sale(branch_id=body_branch), format="json")
+        assert response.status_code == 403
+
+
 def test_closed_branch_cannot_sell(cashier):
     BranchRef.objects.create(branch_id=BRANCH, status="CLOSED", timezone="Asia/Phnom_Penh")
 

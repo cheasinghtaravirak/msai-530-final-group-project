@@ -108,11 +108,11 @@ def _find_branch_id(request, view, name: str) -> str | None:
         request.query_params.get(name),
         request.data.get(name) if isinstance(request.data, dict) else None,
     ]
-    found = {value for value in sources if value is not None}
-    if len(found) > 1:
+    found = [value for value in sources if value is not None]
+    if any(value != found[0] for value in found):
         # The view may act on a different source than the one checked here, so a mismatch is refused.
         raise exceptions.PermissionDenied(f"{name} differs between the URL, query string and body")
-    return found.pop() if found else None
+    return found[0] if found else None
 
 
 def HasRole(*roles: str, branch_from: str | None = None):  # noqa: N802 - reads like a class
