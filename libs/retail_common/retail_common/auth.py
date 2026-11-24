@@ -103,12 +103,16 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
 
 def _find_branch_id(request, view, name: str) -> str | None:
-    value = (view.kwargs or {}).get(name) if hasattr(view, "kwargs") else None
-    if value is None:
-        value = request.query_params.get(name)
-    if value is None and isinstance(request.data, dict):
-        value = request.data.get(name)
-    return value
+    sources = [
+        (view.kwargs or {}).get(name) if hasattr(view, "kwargs") else None,
+        request.query_params.get(name),
+        request.data.get(name) if isinstance(request.data, dict) else None,
+    ]
+    found = {value for value in sources if value is not None}
+    if len(found) > 1:
+        # The view may act on a different source than the one checked here, so a mismatch is refused.
+        raise exceptions.PermissionDenied(f"{name} differs between the URL, query string and body")
+    return found.pop() if found else None
 
 
 def HasRole(*roles: str, branch_from: str | None = None):  # noqa: N802 - reads like a class

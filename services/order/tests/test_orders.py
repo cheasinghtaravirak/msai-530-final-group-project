@@ -200,6 +200,12 @@ def test_branch_outside_the_token_is_refused(cashier):
     assert cashier.get("/orders", {"branch_id": OTHER_BRANCH}).status_code == 403
 
 
+def test_own_branch_in_the_query_cannot_cover_another_branch_in_the_body(cashier):
+    response = cashier.post(f"/orders?branch_id={BRANCH}", sale(branch_id=OTHER_BRANCH), format="json")
+    assert response.status_code == 403
+    assert not SalesOrder.objects.filter(branch_id=OTHER_BRANCH).exists()
+
+
 def test_closed_branch_cannot_sell(cashier):
     BranchRef.objects.create(branch_id=BRANCH, status="CLOSED", timezone="Asia/Phnom_Penh")
 
