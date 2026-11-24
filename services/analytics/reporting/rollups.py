@@ -31,7 +31,6 @@ def month_bounds(month: str) -> tuple[date, date]:
 
 
 def lock_until_commit(*key) -> None:
-    """Make concurrent recomputes of one key (the nightly run and HQ's "Run now") take turns."""
     with connection.cursor() as cursor:
         cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", [":".join(map(str, key))])
 

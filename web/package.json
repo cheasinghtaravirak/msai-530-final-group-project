@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "lint": "eslint .",
+    "check:sale": "esbuild scripts/check-sale.ts --bundle --platform=node --log-level=warning | node",
     "format": "prettier --write ."
   },
   "dependencies": {

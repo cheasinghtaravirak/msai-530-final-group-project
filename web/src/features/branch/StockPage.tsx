@@ -332,7 +332,6 @@ function AdjustForm({ branchId, row, onDone }: { branchId: string; row: StockRow
     },
   });
 
-  // Retrying an unanswered request must resend what may already be saved.
   const unsure = adjust.isError && outcomeUnknown(adjust.error);
 
   function onSubmit(e: FormEvent) {

@@ -1,4 +1,3 @@
-// Run: npx esbuild scripts/check-sale.ts --bundle --platform=node --log-level=warning | node
 import assert from "node:assert/strict";
 
 import { IDLE, saleReducer, type Sale, type SaleAction } from "../src/features/pos/sale";

@@ -16,8 +16,7 @@ export interface Tender {
 export type Failure =
   { kind: "prices_changed" } | { kind: "item"; sku: string; message: string } | { kind: "error"; message: string };
 
-// After a submit that may have been recorded, the sale is "unconfirmed": its lines and tender are frozen
-// until a retry under the same orderId gets an answer, because the server replays a known orderId as stored.
+// unconfirmed: frozen until a retry under the same orderId is answered; the server replays a known orderId.
 export type Sale =
   | { step: "idle" }
   | { step: "cart"; orderId: string; lines: CartLine[]; tender: Tender; failure: Failure | null }
