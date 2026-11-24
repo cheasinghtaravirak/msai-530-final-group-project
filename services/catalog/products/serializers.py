@@ -22,9 +22,9 @@ class CategorySerializer(serializers.ModelSerializer):
 class SkuInputSerializer(serializers.Serializer):
     sku = serializers.RegexField(SKU_CODE)
     name = serializers.CharField(max_length=200)
-    barcode = serializers.CharField(max_length=50, required=False, allow_null=True, default=None)
-    unit = serializers.ChoiceField(Sku.Unit.choices, default=Sku.Unit.EA)
-    pack_size = serializers.IntegerField(min_value=1, default=1)
+    barcode = serializers.CharField(max_length=50, allow_null=True)
+    unit = serializers.ChoiceField(Sku.Unit.choices)
+    pack_size = serializers.IntegerField(min_value=1)
 
 
 class SkuSerializer(serializers.ModelSerializer):
@@ -43,6 +43,10 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ["product_id", "category_id", "category", "name", "brand", "status", "skus"]
 
     def validate_skus(self, skus):
+        # A partial PATCH makes nested fields optional too, so validate the SKUs again on their own.
+        whole = SkuInputSerializer(data=self.initial_data["skus"], many=True)
+        whole.is_valid(raise_exception=True)
+        skus = whole.validated_data
         codes = [s["sku"] for s in skus]
         barcodes = [s["barcode"] for s in skus if s["barcode"]]
         if len(set(codes)) != len(codes) or len(set(barcodes)) != len(barcodes):
