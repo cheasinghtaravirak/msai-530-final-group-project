@@ -1,11 +1,13 @@
 """The jobs Analytics runs (design doc §8.2). Each job returns a short message for job_run.
 
-The real implementations arrive in Phases 3-4. Until then each job is a placeholder, so the
-scheduler, the queue and the "Run now" buttons can be built and tested now.
+J2 and J6 are built (Phase 3). The others are placeholders until Phase 4.
 """
 
 import logging
 from collections.abc import Callable
+
+from django.utils import timezone
+from reporting import rollups
 
 log = logging.getLogger(__name__)
 
@@ -15,11 +17,11 @@ def reconcile() -> str:  # J1, 00:15
 
 
 def day_close() -> str:  # J2
-    return "placeholder: day_close not implemented yet"
+    return rollups.day_close(timezone.localdate())
 
 
 def month_close() -> str:  # J6, 4th of the month
-    return "placeholder: month_close not implemented yet"
+    return rollups.month_close(timezone.localdate())
 
 
 def forecast() -> str:  # J3
