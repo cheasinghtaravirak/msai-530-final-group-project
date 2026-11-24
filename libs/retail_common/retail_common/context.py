@@ -57,8 +57,6 @@ class RequestIdMiddleware:
 
 
 class JsonFormatter(logging.Formatter):
-    """One JSON object per line: the same keys in every service, so logs can be joined on request_id."""
-
     EXTRA = ("method", "path", "status", "duration_ms")
 
     def format(self, record: logging.LogRecord) -> str:

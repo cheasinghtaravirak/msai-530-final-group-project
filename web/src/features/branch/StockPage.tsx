@@ -38,8 +38,8 @@ const FILTER_PARAM: Record<string, Record<string, string>> = {
   low: { low_only: "true" },
   negative: { negative_only: "true" },
 };
-// Sales land through Kafka, so the page polls to show them within a few seconds.
 const REFRESH_MS = 5000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
 
 function StockBadge({ row }: { row: StockRow }) {
   if (row.on_hand < 0) return <Badge color="red">Negative</Badge>;
@@ -291,7 +291,7 @@ function MovementHistory({
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm" className="num">
-                      #{m.source_ref.slice(0, 8)}
+                      #{UUID.test(m.source_ref) ? m.source_ref.slice(0, 8) : m.source_ref}
                     </Text>
                     {m.note && (
                       <Text size="xs" c="dimmed">

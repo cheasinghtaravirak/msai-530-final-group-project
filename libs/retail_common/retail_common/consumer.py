@@ -53,7 +53,6 @@ def apply_event(envelope: dict[str, Any]) -> bool:
     handler = HANDLERS.get(envelope.get("event_type"))
     if handler is None:
         return False
-    # Events the handler publishes, and its log lines, carry the request ID that caused this event.
     token = set_request_id(envelope.get("correlation_id"))
     try:
         with transaction.atomic():

@@ -30,7 +30,6 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return (await apiResponse<T>(path, options)).body;
 }
 
-/** `api` plus the HTTP status, for endpoints where 200 and 201 mean different things. */
 export async function apiResponse<T>(
   path: string,
   { json, headers, ...init }: RequestOptions = {},

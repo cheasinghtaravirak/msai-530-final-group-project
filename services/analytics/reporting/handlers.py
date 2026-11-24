@@ -38,7 +38,6 @@ def on_product_upserted(event: dict) -> None:
 
 
 def record_sales_lines(event: dict, entry_type: str, sign: int, day: str) -> None:
-    """Facts are keyed by (order_id, line_no, entry_type), so a re-read event adds nothing."""
     p = event["payload"]
     FactSalesLine.objects.bulk_create(
         [

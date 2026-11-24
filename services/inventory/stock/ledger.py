@@ -1,9 +1,3 @@
-"""The stock ledger: every change to stock_level is one stock_movement row, written together.
-
-stock_movement_source_unique names each cause of a change (an order line, a receipt line, an
-adjustment), so applying the same cause again finds its movement and changes nothing.
-"""
-
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -46,7 +40,6 @@ def move_stock(
     note: str = "",
     created_by: str | None = None,
 ) -> StockLevel | None:
-    """Apply one cause to one branch's stock and publish stock.adjusted. None if it was already applied."""
     with transaction.atomic(), connection.cursor() as cursor:
         cursor.execute(
             MOVE,

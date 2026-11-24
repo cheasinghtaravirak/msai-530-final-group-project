@@ -5,7 +5,6 @@ import { useAuth } from "./AuthContext";
 import { branchIds, type Role } from "./roles";
 
 interface BranchState {
-  /** Branches the current section lets the user work in: managed branches under /branch, else managed or till branches. */
   branches: string[];
   /** The branch the user is working in: always one of `branches`, or null if they work at none. */
   branchId: string | null;

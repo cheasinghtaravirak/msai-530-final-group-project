@@ -62,7 +62,6 @@ function useItemSearch(branchId: string, q: string) {
   });
 }
 
-// A sale outlives a reload or a trip to Today's sales, so a retry after a lost response keeps its order id.
 function useSale(userId: string, branchId: string) {
   const key = `retail.sale.${userId}.${branchId}`;
   const [sale, dispatch] = useReducer(saleReducer, key, (k): Sale => {

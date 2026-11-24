@@ -10,17 +10,12 @@ export interface CartLine {
 
 export interface Tender {
   method: PaymentMethod;
-  /** What the cashier typed as cash received. Only read for CASH. */
   tendered: string;
 }
 
 export type Failure =
   { kind: "prices_changed" } | { kind: "item"; sku: string; message: string } | { kind: "error"; message: string };
 
-/**
- * One POS sale. The order id is minted when the first item lands in the cart and survives every failed
- * attempt, so a retry after a lost response can only ever replay the same order on the server.
- */
 export type Sale =
   | { step: "idle" }
   | { step: "cart"; orderId: string; lines: CartLine[]; tender: Tender; failure: Failure | null }
@@ -44,7 +39,6 @@ export function cartTotal(lines: CartLine[]): number {
   return lines.reduce((sum, l) => sum + l.unitCents * l.qty, 0);
 }
 
-/** Cash received in cents, or null when the input is not an amount. */
 export function tenderedCents(tender: Tender): number | null {
   return toCents(tender.tendered);
 }
@@ -56,7 +50,6 @@ export function canSubmit(sale: Sale): boolean {
   return cash !== null && cash >= cartTotal(sale.lines);
 }
 
-/** The POST /order/orders body. Never carries prices: Order prices every line itself. */
 export function orderRequest(sale: { orderId: string; lines: CartLine[]; tender: Tender }, branchId: string) {
   return {
     order_id: sale.orderId,

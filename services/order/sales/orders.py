@@ -1,9 +1,3 @@
-"""The order lifecycle: COMPLETED on creation, then REFUNDED at most once.
-
-Each transition saves the order and its outbox event in one transaction, and repeating either
-one returns the stored order without a second event.
-"""
-
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -46,7 +40,6 @@ def local_date(branch_id: str, moment: datetime) -> date:
 
 
 def catalog_price(sku: str, branch_id: str) -> tuple[str, Decimal]:
-    """S6: ask Catalog for a SKU missing from the caches."""
     try:
         response = httpx.get(
             f"{settings.CATALOG_URL}/prices/{quote(sku, safe='')}",
@@ -99,7 +92,6 @@ def stored_order(order_id: UUID, branch_id: str) -> SalesOrder | None:
 def place_order(
     *, order_id: UUID, branch_id: str, cashier_id: str, lines: list[dict], payments: list[dict]
 ) -> tuple[SalesOrder, bool]:
-    """Returns the order and whether this call created it."""
     if existing := stored_order(order_id, branch_id):
         return existing, False
     if BranchRef.objects.filter(pk=branch_id, status=BranchRef.CLOSED).exists():
@@ -107,7 +99,6 @@ def place_order(
 
     now = timezone.now()
     sale_date = local_date(branch_id, now)
-    # Priced before the transaction opens: S6 is a network call.
     priced = price_lines(branch_id, lines, sale_date)
     total = sum((line.line_total for line in priced), Decimal("0.00"))
     if sum(payment["amount"] for payment in payments) != total:
@@ -167,7 +158,6 @@ def place_order(
                 key=str(order_id),
             )
     except IntegrityError:
-        # A concurrent request with the same order_id won the insert.
         existing = stored_order(order_id, branch_id)
         if existing is None:
             raise

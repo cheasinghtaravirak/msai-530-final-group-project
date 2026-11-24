@@ -52,9 +52,7 @@ def copy_rows(cur: psycopg.Cursor, table: str, columns: str, rows) -> None:
 
 
 def load_sales(order_db: psycopg.Connection, analytics_db: psycopg.Connection, end: date) -> dict:
-    """One pass over the history, streamed into both databases. Returns recent units per branch and SKU.
-
-    A connection runs one COPY at a time, so Order gets one wide row per line and SQL splits it into
+    """A connection runs one COPY at a time, so Order gets one wide row per line and SQL splits it into
     orders, lines and payments.
     """
     recent_units: dict[tuple[str, str], int] = defaultdict(int)
@@ -133,7 +131,6 @@ def load_sales(order_db: psycopg.Connection, analytics_db: psycopg.Connection, e
 def open_stock(
     inventory_db: psycopg.Connection, analytics_db: psycopg.Connection, end: date, recent_units: dict
 ) -> None:
-    """The opening balance is one ADJUST movement per branch and SKU, so the ledger explains every unit on hand."""
     at = datetime.combine(end, clock(21), TZ)
     branches = sorted({branch for branch, _ in recent_units} | {f"BR-0{n}" for n in range(1, 6)})
     openings = [

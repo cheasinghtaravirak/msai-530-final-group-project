@@ -1,5 +1,3 @@
-"""retail_common's outbox and consumer, run here because Admin owns the shared library's migrations."""
-
 import json
 import uuid
 from types import SimpleNamespace

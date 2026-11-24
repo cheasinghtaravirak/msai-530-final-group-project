@@ -1,10 +1,3 @@
-"""Daily and monthly sales rollups (J2 day_close, J6 month_close) and the daily sales report.
-
-Revenue and units are net of refunds, counted on the refund day. Order counts always come from
-COUNT(DISTINCT order_id) over the SALE facts: agg_sales_daily.order_count is per SKU, so
-summing it would count a three-line order three times.
-"""
-
 import calendar
 from datetime import date, timedelta
 from decimal import Decimal
@@ -77,8 +70,11 @@ def recompute_month(branch_id: str, month: str, today: date) -> None:
     )
 
 
+def clear_dirty_if_unchanged(branch_id: str, day: date, marked_at) -> None:
+    DirtyDay.objects.filter(branch_id=branch_id, sale_date=day, marked_at=marked_at).delete()
+
+
 def day_close(today: date) -> str:
-    """J2. Recomputes every dirty past day and yesterday, then the months they fall in."""
     yesterday = today - timedelta(days=1)
     days = {
         (b, d): m
@@ -89,8 +85,7 @@ def day_close(today: date) -> str:
     for (branch_id, day), marked_at in sorted(days.items()):
         with transaction.atomic():
             recompute_day(branch_id, day, today)
-            # A marker set again while this ran keeps its newer marked_at, so the next run sees it.
-            DirtyDay.objects.filter(branch_id=branch_id, sale_date=day, marked_at=marked_at).delete()
+            clear_dirty_if_unchanged(branch_id, day, marked_at)
     finalised = AggSalesDaily.objects.filter(
         sale_date__lt=today - timedelta(days=FINAL_AFTER_DAYS), status=Status.PROVISIONAL
     ).update(status=Status.FINAL)
@@ -116,7 +111,6 @@ def day_close(today: date) -> str:
 
 
 def month_close(today: date) -> str:
-    """J6. Recomputes every month that has daily rows."""
     months = AggSalesDaily.objects.annotate(month=TruncMonth("sale_date")).values_list("branch_id", "month").distinct()
     keys = sorted({(branch_id, month.strftime("%Y-%m")) for branch_id, month in months})
     for branch_id, month in keys:
@@ -130,7 +124,6 @@ def basket(revenue: Decimal, orders: int) -> Decimal:
 
 
 def daily_sales(branch_id: str, first: date, last: date, today: date) -> list[dict]:
-    """Past days from agg_sales_daily, today live from the facts. Newest first."""
     facts = FactSalesLine.objects.filter(branch_id=branch_id, sale_date__range=(first, last))
     orders = dict(facts.values("sale_date").annotate(n=SALE_ORDERS).values_list("sale_date", "n"))
     days = {

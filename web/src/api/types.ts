@@ -1,5 +1,3 @@
-// Shapes from services/order, services/inventory and services/analytics API.md. Money is a 2-decimal string.
-
 export interface Page<T> {
   results: T[];
   count: number;
