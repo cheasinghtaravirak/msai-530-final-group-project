@@ -179,8 +179,8 @@ function CloseBranchConfirm({ branch, onDone }: { branch: Branch; onDone: () => 
     <Stack>
       {closeBranch.error && <Alert color="red">{closeBranch.error.message}</Alert>}
       <Text>
-        Close {branch.branch_id} {branch.name}? Closing revokes every staff role at this branch, so its managers and
-        cashiers can no longer work there.
+        Close {branch.branch_id} {branch.name}? Its managers and cashiers lose their roles here. Anyone already signed
+        in can keep working here until their sign-in runs out, up to 8 hours later.
       </Text>
       <Group justify="flex-end" gap="xs">
         <Button variant="default" onClick={onDone}>

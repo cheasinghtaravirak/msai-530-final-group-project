@@ -78,17 +78,18 @@ def barcode(index: int) -> str:
     return digits + str(check)
 
 
-def seed_branches(api: Api) -> None:
-    existing = {b["branch_id"] for b in api.all("/admin/branches")}
+def seed_branches(api: Api) -> set[str]:
+    existing = {b["branch_id"]: b["status"] for b in api.all("/admin/branches")}
     for branch in BRANCHES:
         if branch["branch_id"] in existing:
             fields = {k: v for k, v in branch.items() if k != "branch_id"}
             api("PATCH", f"/admin/branches/{branch['branch_id']}", fields)
         else:
             api("POST", "/admin/branches", branch)
+    return {branch_id for branch_id, status in existing.items() if status == "CLOSED"}
 
 
-def seed_users(api: Api) -> None:
+def seed_users(api: Api, closed: set[str]) -> None:
     users = {u["email"]: u for u in api("GET", "/admin/users")["results"]}
     for branch in BRANCHES:
         number = branch["branch_id"].removeprefix("BR-")
@@ -97,6 +98,8 @@ def seed_users(api: Api) -> None:
             user = users.get(email) or api(
                 "POST", "/admin/users", {"email": email, "full_name": f"{title} {branch['name']}", "password": PASSWORD}
             )
+            if branch["branch_id"] in closed:
+                continue
             api("POST", f"/admin/users/{user['user_id']}/roles", {"role_code": role, "branch_id": branch["branch_id"]})
 
 
@@ -179,8 +182,8 @@ def main() -> None:
     api = Api(args.base_url)
     api.token = api("POST", "/admin/auth/login", {"email": args.email, "password": args.password})["access_token"]
 
-    seed_branches(api)
-    seed_users(api)
+    closed = seed_branches(api)
+    seed_users(api, closed)
     categories = seed_categories(api)
     seed_products(api, categories)
     seed_prices(api)

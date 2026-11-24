@@ -55,7 +55,7 @@ A product is sold as one or more SKUs. Each SKU has its own display name, becaus
 }
 ```
 
-`POST /products` takes the same shape without `product_id`, `category` and `price`, with at least one SKU. `PATCH /products/{product_id}` takes any of `name`, `brand`, `category_id`, `status` (`ACTIVE` or `DISCONTINUED`) and `skus`. Each listed SKU is created or has all its fields replaced; SKUs not listed are left alone. A SKU code owned by another product returns 409 `SKU_TAKEN`, and a barcode used by another SKU returns 409 `BARCODE_TAKEN`.
+`POST /products` takes the same shape without `product_id`, `category` and `price`, with at least one SKU. `PATCH /products/{product_id}` takes any of `name`, `brand`, `category_id`, `status` (`ACTIVE` or `DISCONTINUED`) and `skus`. Each listed SKU needs all five fields (`barcode` may be `null`) and is created or has all its fields replaced; SKUs not listed are left alone. A SKU code owned by another product returns 409 `SKU_TAKEN`, and a barcode used by another SKU returns 409 `BARCODE_TAKEN`.
 
 Both publish `product.upserted` for every SKU of the product, plus `supplier_terms.changed` for each of its supplier terms, since that payload carries the SKU's `pack_size`.
 
