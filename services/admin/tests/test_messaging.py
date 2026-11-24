@@ -7,7 +7,7 @@ from django.db import transaction
 
 from retail_common import consumer
 from retail_common.consumer import HANDLERS, EventConsumer, apply_event
-from retail_common.context import reset_request_id, set_request_id
+from retail_common.context import JsonFormatter, reset_request_id, set_request_id
 from retail_common.events import build_envelope, publish_event
 from retail_common.models import Outbox, ProcessedEvent
 
@@ -104,6 +104,27 @@ def test_failing_handler_goes_to_the_dlq_after_three_attempts(monkeypatch):
     assert b"bad event" in headers["dlq_error"]
     assert source.committed == [message], "the partition moves on past the poison message"
     assert not ProcessedEvent.objects.filter(event_id=envelope["event_id"]).exists()
+
+
+def test_a_failing_handler_is_logged_under_the_request_id_of_its_event(monkeypatch, caplog):
+    def handler(envelope):
+        raise Boom("bad event")
+
+    monkeypatch.setitem(HANDLERS, EVENT, handler)
+    monkeypatch.setattr(consumer.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(consumer, "close_old_connections", lambda: None)
+    token = set_request_id("req-from-gateway")
+    try:
+        envelope = build_envelope(EVENT, {"branch_id": KEY})
+    finally:
+        reset_request_id(token)
+    caplog.handler.setFormatter(JsonFormatter())
+
+    EventConsumer(FakeKafka(fake_message(envelope)), dlq_producer=FakeKafka()).poll_once()
+
+    failures = [json.loads(line) for line in caplog.text.splitlines() if "Handler failed" in line]
+    assert len(failures) == 3
+    assert {entry["request_id"] for entry in failures} == {"req-from-gateway"}
 
 
 def test_handler_publishes_with_the_correlation_id_of_the_event_it_handles(monkeypatch):
