@@ -1,8 +1,9 @@
-import { AppShell, Badge, Burger, Button, Group, NavLink, ScrollArea, Stack, Text, Title } from "@mantine/core";
+import { AppShell, Badge, Burger, Button, Group, NavLink, ScrollArea, Select, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { NavLink as RouterLink, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import { useBranch } from "../auth/BranchContext";
 import { hasRole, type Role } from "../auth/roles";
 
 interface NavItem {
@@ -32,6 +33,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const { branches, branchId, selectBranch } = useBranch();
   const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
 
@@ -48,6 +50,17 @@ export function AppLayout() {
             <Title order={4}>Retail Ops</Title>
           </Group>
           <Group gap="sm" wrap="nowrap">
+            {branches.length > 1 && (
+              <Select
+                aria-label="Branch"
+                size="xs"
+                w={110}
+                data={branches}
+                value={branchId}
+                allowDeselect={false}
+                onChange={(id) => id && selectBranch(id)}
+              />
+            )}
             <Text size="sm" visibleFrom="xs" truncate>
               {user?.full_name}
             </Text>
