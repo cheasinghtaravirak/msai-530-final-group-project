@@ -10,6 +10,7 @@ import { HqDashboard } from "./features/hq/HqDashboard";
 import { JobsPage } from "./features/hq/JobsPage";
 import { ProductsPage } from "./features/hq/ProductsPage";
 import { PosPage } from "./features/pos/PosPage";
+import { SalesHistoryPage, TodaysSalesPage } from "./features/sales/SalesPages";
 import { AppLayout } from "./layouts/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import { MessagePage } from "./pages/MessagePage";
@@ -72,10 +73,26 @@ export function App() {
           }
         />
         <Route
+          path="branch/sales"
+          element={
+            <RequireRole roles={["BRANCH_MANAGER"]}>
+              <SalesHistoryPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="pos"
           element={
             <RequireRole roles={["BRANCH_MANAGER", "CASHIER"]}>
               <PosPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="pos/sales"
+          element={
+            <RequireRole roles={["BRANCH_MANAGER", "CASHIER"]}>
+              <TodaysSalesPage />
             </RequireRole>
           }
         />
