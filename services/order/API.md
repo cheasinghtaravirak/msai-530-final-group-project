@@ -56,7 +56,7 @@ Served only from `product_cache` and `price_cache`, so the POS keeps selling whe
 - `method` is `CASH`, `CARD` or `QR`. The payments must add up to the order total, or the request is rejected with 400 `PAYMENT_MISMATCH`. Its `details` carry the server's numbers, `{"total_amount": "4.90", "lines": [{"sku": "COKE-330", "unit_price": "1.70"}]}`, so a till whose prices went stale can refresh its cart. For cash, send the amount kept, not the amount tendered: change is worked out on the screen.
 - `cashier_id` comes from the token, not the body. `channel` is always `POS`.
 - A sale at a branch that Order knows is closed is rejected with 409 `BRANCH_CLOSED`. Order keeps a `branch_ref` copy fed by `branch.upserted`, because a closed branch's staff hold valid tokens until they expire.
-- The order is saved `COMPLETED`, with `sale_date` set to the branch-local date, in the same transaction as the `order.completed` outbox row.
+- The order is saved `COMPLETED`, with `sale_date` set to the date in the business time zone (`Asia/Phnom_Penh`, the only zone a branch may have), in the same transaction as the `order.completed` outbox row.
 
 Response, the order shape that every endpoint below returns too:
 
@@ -89,7 +89,7 @@ Response, the order shape that every endpoint below returns too:
 
 ## POST /orders/{order_id}/refund
 
-Refunds the whole order. No body. Sets `status = REFUNDED`, `refunded_at`, `refund_date` (branch-local) and `refunded_by` (from the token), and writes the `order.refunded` outbox row in the same transaction. Returns the order. Refunding an order that is already `REFUNDED` returns it unchanged and publishes nothing, so a retry is safe.
+Refunds the whole order. No body. Sets `status = REFUNDED`, `refunded_at`, `refund_date` (business time zone) and `refunded_by` (from the token), and writes the `order.refunded` outbox row in the same transaction. Returns the order. Refunding an order that is already `REFUNDED` returns it unchanged and publishes nothing, so a retry is safe.
 
 ## GET /internal/sales-summary
 
@@ -108,7 +108,7 @@ Reached service to service at `http://order:8000/internal/sales-summary`, with `
 | Event | Direction | Phase | Effect |
 |---|---|---|---|
 | `product.upserted` (E2) | consumes | 2 (built) | Upsert `product_cache` by `sku`. `active` is `status == "ACTIVE"`. A barcode that moved to this SKU is cleared from any other row first. |
-| `branch.upserted` (E1) | consumes | 3 | Upsert `branch_ref` (`status`, `timezone`). Used to refuse sales at a closed branch and to date a sale in the branch's timezone. |
+| `branch.upserted` (E1) | consumes | 3 | Upsert `branch_ref` (`status`). Used to refuse sales at a closed branch. |
 | `price.changed` (E3) | consumes | 2 (built) | Upsert `price_cache` by `(sku, branch_scope, valid_from)`. A price may arrive before its product; the item shows up priced once the product arrives. |
 | `order.completed` (E5) | publishes | 3 | On every new order. Payload in design doc §6.3. |
 | `order.refunded` (E6) | publishes | 3 | On every refund. Payload in design doc §6.3. |

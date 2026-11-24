@@ -44,3 +44,18 @@ def test_granting_the_same_role_twice_keeps_one_grant(hq):
 
     assert (first.status_code, second.status_code) == (201, 200)
     assert first.json()["grant_id"] == second.json()["grant_id"]
+
+
+@pytest.mark.parametrize("zone", ["Asia/Phnom Penh", "Asia/Bangkok"])
+def test_a_branch_time_zone_other_than_the_business_zone_is_refused(hq, zone):
+    shop = Shop.objects.first() or Shop.objects.create(name="Test shop")
+    Branch.objects.create(branch_id="BR-9904", shop=shop, name="Test branch", region="KAMPOT")
+
+    patched = hq.patch("/branches/BR-9904", {"timezone": zone}, format="json")
+    created = hq.post(
+        "/branches", {"branch_id": "BR-9905", "name": "Test", "region": "KAMPOT", "timezone": zone}, format="json"
+    )
+
+    assert (patched.status_code, created.status_code) == (400, 400)
+    assert Branch.objects.get(pk="BR-9904").timezone == "Asia/Phnom_Penh"
+    assert not Branch.objects.filter(pk="BR-9905").exists()

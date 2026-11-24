@@ -24,6 +24,8 @@ Conventions from `docs/implementation-plan.md` §3 apply to every endpoint:
 
 A branch is `{"branch_id": "BR-01", "name", "address", "region", "timezone", "status", "opened_on"}`. `branch_id` is set on create and never changes. `PATCH` takes any of the other fields except `status`.
 
+`timezone` is always the business time zone, `Asia/Phnom_Penh` (design doc §1 leaves multiple time zones out of scope). Any other value returns 400 `VALIDATION_ERROR`. The field stays in the branch and in `branch.upserted` because the contract names it.
+
 `POST /branches/{branch_id}/close` sets `status` to `CLOSED`, revokes every active role grant on the branch, and returns the branch. Branches are never deleted.
 
 Create, patch and close each publish `branch.upserted` with `branch_id, name, region, timezone, status`, keyed by `branch_id`.
