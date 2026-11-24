@@ -26,6 +26,7 @@ import {
   IconLogout,
   IconMapPins,
   IconMoon,
+  IconPackage,
   IconSun,
   IconSunMoon,
   type Icon,
@@ -49,6 +50,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { label: "Company dashboard", to: "/hq", icon: IconLayoutDashboard, roles: ["HQ_ADMIN"] },
       { label: "Branches", to: "/hq/branches", icon: IconMapPins, roles: ["HQ_ADMIN"] },
+      { label: "Products", to: "/hq/products", icon: IconPackage, roles: ["HQ_ADMIN"] },
       { label: "Scheduled jobs", to: "/hq/jobs", icon: IconClockPlay, roles: ["HQ_ADMIN"] },
     ],
   },
