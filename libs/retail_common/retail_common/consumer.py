@@ -65,6 +65,7 @@ def apply_event(envelope: dict[str, Any]) -> bool:
                 log.info("Skipping duplicate %s %s", envelope["event_type"], envelope["event_id"])
                 return False
             handler(envelope)
+        log.info("Applied %s %s", envelope["event_type"], envelope["event_id"])
     finally:
         reset_request_id(token)
     return True
@@ -113,9 +114,7 @@ class EventConsumer:
             attempt += 1
             try:
                 close_old_connections()
-                applied = apply_event(envelope)
-                if applied:
-                    log.info("Applied %s %s", envelope["event_type"], envelope["event_id"])
+                apply_event(envelope)
                 return
             except (OperationalError, InterfaceError) as exc:
                 # Database unavailable: wait and retry the same event, never DLQ it.
