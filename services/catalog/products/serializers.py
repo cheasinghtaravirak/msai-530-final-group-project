@@ -4,7 +4,7 @@ from retail_common.api import ApiError
 
 from .models import Category, Product, Sku, Supplier
 
-SKU_CODE = r"^[A-Z0-9][A-Z0-9-]{0,39}$"  # Analytics stores SKUs in 40-character columns
+SKU_CODE = r"^[A-Z0-9][A-Z0-9-]{0,39}$"
 BRANCH_SCOPE = r"^(ALL|BR-\d{2,4})$"
 MONEY = {"max_digits": 12, "decimal_places": 2, "min_value": 0}
 
