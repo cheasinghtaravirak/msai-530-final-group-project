@@ -20,7 +20,7 @@ import { IconBarcode, IconBuildingStore, IconMinus, IconPlus, IconSearch, IconTr
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent } from "react";
 
-import { api, ApiError, apiResponse } from "../../api/client";
+import { api, ApiError, apiResponse, outcomeUnknown } from "../../api/client";
 import type { Order, Page, PaymentMethod, PosItem } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { useBranch } from "../../auth/BranchContext";
@@ -69,11 +69,7 @@ function useSale(userId: string, branchId: string) {
       const raw = sessionStorage.getItem(k);
       const saved = raw ? (JSON.parse(raw) as Sale) : IDLE;
       if (saved.step !== "submitting") return saved;
-      const failure: Failure = {
-        kind: "error",
-        message: "The last attempt was interrupted before the till heard back.",
-      };
-      return { ...saved, step: "cart", failure };
+      return { ...saved, step: "unconfirmed", message: "The till closed before the server answered" };
     } catch {
       return IDLE;
     }
@@ -89,7 +85,9 @@ function useSale(userId: string, branchId: string) {
 }
 
 function failedAction(error: unknown): SaleAction {
-  if (!(error instanceof ApiError)) return { type: "failed", failure: { kind: "error", message: String(error) } };
+  if (!(error instanceof ApiError) || outcomeUnknown(error)) {
+    return { type: "unanswered", message: error instanceof Error ? error.message : String(error) };
+  }
   const details = (error.details ?? {}) as { sku?: string; lines?: { sku: string; unit_price: string }[] };
   if (error.code === "PAYMENT_MISMATCH") {
     return { type: "failed", failure: { kind: "prices_changed" }, prices: details.lines };
@@ -123,7 +121,7 @@ function Till({ branchId }: { branchId: string }) {
   const [sale, dispatch] = useSale(user?.user_id ?? "", branchId);
 
   async function complete() {
-    if (sale.step !== "cart" || !canSubmit(sale)) return;
+    if ((sale.step !== "cart" && sale.step !== "unconfirmed") || !canSubmit(sale)) return;
     dispatch({ type: "submit" });
     try {
       const { status, body: order } = await apiResponse<Order>("/order/orders", {
@@ -148,7 +146,7 @@ function Till({ branchId }: { branchId: string }) {
             <Stack gap="lg">
               <ItemLookup
                 branchId={branchId}
-                disabled={sale.step === "submitting"}
+                disabled={sale.step === "submitting" || sale.step === "unconfirmed"}
                 onAdd={(line) => dispatch({ type: "add", line, newOrderId: crypto.randomUUID() })}
               />
               <Cart sale={sale} dispatch={dispatch} />
@@ -288,7 +286,7 @@ function ItemLookup({
 }
 
 function Cart({ sale, dispatch }: { sale: Sale; dispatch: (a: SaleAction) => void }) {
-  if (sale.step !== "cart" && sale.step !== "submitting") {
+  if (sale.step === "idle" || sale.step === "receipt") {
     return (
       <Card py="xl">
         <EmptyState icon={IconBarcode} title="Scan or search for an item">
@@ -297,7 +295,7 @@ function Cart({ sale, dispatch }: { sale: Sale; dispatch: (a: SaleAction) => voi
       </Card>
     );
   }
-  const locked = sale.step === "submitting";
+  const locked = sale.step !== "cart";
   const badSku = sale.step === "cart" && sale.failure?.kind === "item" ? sale.failure.sku : null;
   return (
     <Card padding={0}>
@@ -401,19 +399,25 @@ function PaymentPanel({
   dispatch,
   onComplete,
 }: {
-  sale: Extract<Sale, { step: "cart" | "submitting" }>;
+  sale: Extract<Sale, { step: "cart" | "submitting" | "unconfirmed" }>;
   dispatch: (a: SaleAction) => void;
   onComplete: () => void;
 }) {
   const total = cartTotal(sale.lines);
   const cash = tenderedCents(sale.tender);
-  const locked = sale.step === "submitting";
+  const locked = sale.step !== "cart";
   const setTender = (tender: Partial<Tender>) => dispatch({ type: "tender", tender });
 
   return (
     <Card>
       <Stack gap="md">
         {sale.step === "cart" && sale.failure && <FailureAlert failure={sale.failure} />}
+        {sale.step === "unconfirmed" && (
+          <Alert color="yellow" title="Not sure the sale went through">
+            {sentence(sale.message)} The server may have recorded it. Retry to find out. It will not be recorded or
+            charged twice. The cart stays locked until then.
+          </Alert>
+        )}
         <Group justify="space-between" align="baseline">
           <Text fw={500} c="dimmed">
             Total
@@ -455,8 +459,13 @@ function PaymentPanel({
             </Group>
           </>
         )}
-        <Button size="lg" loading={locked} disabled={!locked && !canSubmit(sale)} onClick={onComplete}>
-          Complete sale
+        <Button
+          size="lg"
+          loading={sale.step === "submitting"}
+          disabled={sale.step === "cart" && !canSubmit(sale)}
+          onClick={onComplete}
+        >
+          {sale.step === "unconfirmed" ? "Retry" : "Complete sale"}
         </Button>
         <Button variant="subtle" color="gray" disabled={locked} onClick={() => dispatch({ type: "clear" })}>
           Clear cart

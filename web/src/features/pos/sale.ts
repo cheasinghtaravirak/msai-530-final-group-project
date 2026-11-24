@@ -16,10 +16,13 @@ export interface Tender {
 export type Failure =
   { kind: "prices_changed" } | { kind: "item"; sku: string; message: string } | { kind: "error"; message: string };
 
+// After a submit that may have been recorded, the sale is "unconfirmed": its lines and tender are frozen
+// until a retry under the same orderId gets an answer, because the server replays a known orderId as stored.
 export type Sale =
   | { step: "idle" }
   | { step: "cart"; orderId: string; lines: CartLine[]; tender: Tender; failure: Failure | null }
   | { step: "submitting"; orderId: string; lines: CartLine[]; tender: Tender }
+  | { step: "unconfirmed"; orderId: string; lines: CartLine[]; tender: Tender; message: string }
   | { step: "receipt"; order: Order; tender: Tender; chargedCents: number; replayed: boolean };
 
 export type SaleAction =
@@ -31,6 +34,7 @@ export type SaleAction =
   | { type: "submit" }
   | { type: "succeeded"; order: Order; replayed: boolean }
   | { type: "failed"; failure: Failure; prices?: { sku: string; unit_price: string }[] }
+  | { type: "unanswered"; message: string }
   | { type: "new_sale" };
 
 export const IDLE: Sale = { step: "idle" };
@@ -44,6 +48,7 @@ export function tenderedCents(tender: Tender): number | null {
 }
 
 export function canSubmit(sale: Sale): boolean {
+  if (sale.step === "unconfirmed") return true;
   if (sale.step !== "cart") return false;
   if (sale.tender.method !== "CASH") return true;
   const cash = tenderedCents(sale.tender);
@@ -93,7 +98,7 @@ export function saleReducer(sale: Sale, action: SaleAction): Sale {
     case "tender":
       return sale.step === "cart" ? { ...sale, tender: { ...sale.tender, ...action.tender } } : sale;
     case "submit":
-      if (!canSubmit(sale) || sale.step !== "cart") return sale;
+      if (!canSubmit(sale) || (sale.step !== "cart" && sale.step !== "unconfirmed")) return sale;
       return { step: "submitting", orderId: sale.orderId, lines: sale.lines, tender: sale.tender };
     case "succeeded":
       if (sale.step !== "submitting") return sale;
@@ -113,6 +118,8 @@ export function saleReducer(sale: Sale, action: SaleAction): Sale {
       });
       return { ...sale, step: "cart", lines, failure: action.failure };
     }
+    case "unanswered":
+      return sale.step === "submitting" ? { ...sale, step: "unconfirmed", message: action.message } : sale;
     case "new_sale":
       return sale.step === "receipt" ? IDLE : sale;
   }
