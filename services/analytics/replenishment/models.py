@@ -28,6 +28,7 @@ class SupplierTerms(models.Model):
     lead_time_days = models.PositiveSmallIntegerField()
     pack_size = models.PositiveIntegerField(default=1)
     min_order_qty = models.PositiveIntegerField(default=1)
+    occurred_at = models.DateTimeField(null=True, blank=True)  # of the event that made this supplier preferred
 
     class Meta:
         db_table = "supplier_terms"

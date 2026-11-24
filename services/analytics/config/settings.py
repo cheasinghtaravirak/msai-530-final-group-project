@@ -3,7 +3,7 @@ import os
 from retail_common.settings_base import *  # noqa: F403
 
 INSTALLED_APPS += ["reporting", "forecasting", "replenishment", "insights", "jobs"]  # noqa: F405
-EVENT_HANDLER_MODULES = ["reporting.handlers"]
+EVENT_HANDLER_MODULES = ["reporting.handlers", "replenishment.handlers"]
 
 # Local LLM (design doc §9.4)
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama")  # "ollama" or "fake"
