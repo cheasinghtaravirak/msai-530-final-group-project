@@ -20,8 +20,9 @@ import { IconBarcode, IconBuildingStore, IconMinus, IconPlus, IconSearch, IconTr
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent } from "react";
 
-import { api, ApiError } from "../../api/client";
+import { api, ApiError, apiResponse } from "../../api/client";
 import type { Order, Page, PaymentMethod, PosItem } from "../../api/types";
+import { useAuth } from "../../auth/AuthContext";
 import { useBranch } from "../../auth/BranchContext";
 import { fromCents, toCents } from "../../money";
 import { EmptyState, ErrorState, formatMoney, formatTime, PageHeader, TableSkeleton } from "../../ui";
@@ -62,8 +63,8 @@ function useItemSearch(branchId: string, q: string) {
 }
 
 // A sale outlives a reload or a trip to Today's sales, so a retry after a lost response keeps its order id.
-function useSale(branchId: string) {
-  const key = `retail.sale.${branchId}`;
+function useSale(userId: string, branchId: string) {
+  const key = `retail.sale.${userId}.${branchId}`;
   const [sale, dispatch] = useReducer(saleReducer, key, (k): Sale => {
     try {
       const raw = sessionStorage.getItem(k);
@@ -119,14 +120,18 @@ export function PosPage() {
 
 function Till({ branchId }: { branchId: string }) {
   const queryClient = useQueryClient();
-  const [sale, dispatch] = useSale(branchId);
+  const { user } = useAuth();
+  const [sale, dispatch] = useSale(user?.user_id ?? "", branchId);
 
   async function complete() {
     if (sale.step !== "cart" || !canSubmit(sale)) return;
     dispatch({ type: "submit" });
     try {
-      const order = await api<Order>("/order/orders", { method: "POST", json: orderRequest(sale, branchId) });
-      dispatch({ type: "succeeded", order });
+      const { status, body: order } = await apiResponse<Order>("/order/orders", {
+        method: "POST",
+        json: orderRequest(sale, branchId),
+      });
+      dispatch({ type: "succeeded", order, replayed: status === 200 });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     } catch (error) {
       dispatch(failedAction(error));
@@ -475,9 +480,9 @@ function Receipt({ sale, onNewSale }: { sale: Extract<Sale, { step: "receipt" }>
             #{order.order_id.slice(0, 8)} · {formatTime(order.completed_at)}
           </Text>
         </Group>
-        {total !== sale.chargedCents && (
+        {(sale.replayed || total !== sale.chargedCents) && (
           <Alert color="yellow">
-            The till had already recorded this sale before the cart changed. This receipt shows what was recorded.
+            The till had already recorded this sale, so nothing was charged twice. This receipt shows what was recorded.
           </Alert>
         )}
         <Table>

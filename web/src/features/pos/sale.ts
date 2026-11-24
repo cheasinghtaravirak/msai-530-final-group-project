@@ -25,7 +25,7 @@ export type Sale =
   | { step: "idle" }
   | { step: "cart"; orderId: string; lines: CartLine[]; tender: Tender; failure: Failure | null }
   | { step: "submitting"; orderId: string; lines: CartLine[]; tender: Tender }
-  | { step: "receipt"; order: Order; tender: Tender; chargedCents: number };
+  | { step: "receipt"; order: Order; tender: Tender; chargedCents: number; replayed: boolean };
 
 export type SaleAction =
   | { type: "add"; line: Omit<CartLine, "qty">; newOrderId: string }
@@ -34,7 +34,7 @@ export type SaleAction =
   | { type: "clear" }
   | { type: "tender"; tender: Partial<Tender> }
   | { type: "submit" }
-  | { type: "succeeded"; order: Order }
+  | { type: "succeeded"; order: Order; replayed: boolean }
   | { type: "failed"; failure: Failure; prices?: { sku: string; unit_price: string }[] }
   | { type: "new_sale" };
 
@@ -104,7 +104,13 @@ export function saleReducer(sale: Sale, action: SaleAction): Sale {
       return { step: "submitting", orderId: sale.orderId, lines: sale.lines, tender: sale.tender };
     case "succeeded":
       if (sale.step !== "submitting") return sale;
-      return { step: "receipt", order: action.order, tender: sale.tender, chargedCents: cartTotal(sale.lines) };
+      return {
+        step: "receipt",
+        order: action.order,
+        tender: sale.tender,
+        chargedCents: cartTotal(sale.lines),
+        replayed: action.replayed,
+      };
     case "failed": {
       if (sale.step !== "submitting") return sale;
       const prices = new Map(action.prices?.map((p) => [p.sku, toCents(p.unit_price)]));

@@ -42,7 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     try {
-      sessionStorage.removeItem(STORAGE_KEY);
+      // Everything this tab saved belongs to the user leaving, including an open cart at the till.
+      sessionStorage.clear();
     } catch {
       /* storage unavailable */
     }

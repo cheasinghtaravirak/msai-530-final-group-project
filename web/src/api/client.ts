@@ -26,7 +26,15 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 type RequestOptions = Omit<RequestInit, "body"> & { json?: unknown };
 
 /** Call the API through the gateway. `path` starts with the service, e.g. "/admin/branches". */
-export async function api<T>(path: string, { json, headers, ...init }: RequestOptions = {}): Promise<T> {
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await apiResponse<T>(path, options)).body;
+}
+
+/** `api` plus the HTTP status, for endpoints where 200 and 201 mean different things. */
+export async function apiResponse<T>(
+  path: string,
+  { json, headers, ...init }: RequestOptions = {},
+): Promise<{ status: number; body: T }> {
   const finalHeaders = new Headers(headers);
   if (json !== undefined) finalHeaders.set("Content-Type", "application/json");
   if (accessToken) finalHeaders.set("Authorization", `Bearer ${accessToken}`);
@@ -55,7 +63,7 @@ export async function api<T>(path: string, { json, headers, ...init }: RequestOp
       err?.details,
     );
   }
-  return body as T;
+  return { status: response.status, body: body as T };
 }
 
 function safeJson(text: string): unknown {
