@@ -111,7 +111,7 @@ The ledger for one SKU at one branch, newest first, paginated:
 | Event | Direction | Phase | Effect |
 |---|---|---|---|
 | `branch.upserted` (E1) | consumes | 1 (built) | Upsert `branch_ref` |
-| `product.upserted` (E2) | consumes | 2 | Upsert `sku_ref` |
+| `product.upserted` (E2) | consumes | 2 (built) | Upsert `sku_ref`. `active` is `status == "ACTIVE"`. |
 | `order.completed` (E5) | consumes | 3 | One `SALE` movement per line (`-qty`) |
 | `order.refunded` (E6) | consumes | 3 | One `REFUND` movement per line (`+qty`) |
 | `replenishment.approved` (E8) | consumes | 4 (REORDER), deferred (TRANSFER) | REORDER: create a PO and raise `on_order`. TRANSFER: create a transfer in `REQUESTED`. A repeat is blocked by `UNIQUE recommendation_id`. |

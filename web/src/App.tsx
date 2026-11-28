@@ -8,6 +8,7 @@ import { BranchDashboard } from "./features/branch/BranchDashboard";
 import { BranchesPage } from "./features/hq/BranchesPage";
 import { HqDashboard } from "./features/hq/HqDashboard";
 import { JobsPage } from "./features/hq/JobsPage";
+import { ProductsPage } from "./features/hq/ProductsPage";
 import { PosPage } from "./features/pos/PosPage";
 import { AppLayout } from "./layouts/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -43,6 +44,14 @@ export function App() {
           element={
             <RequireRole roles={["HQ_ADMIN"]}>
               <BranchesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="hq/products"
+          element={
+            <RequireRole roles={["HQ_ADMIN"]}>
+              <ProductsPage />
             </RequireRole>
           }
         />

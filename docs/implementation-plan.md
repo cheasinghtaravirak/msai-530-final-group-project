@@ -237,28 +237,28 @@ The weekend of Nov 28–29 is scheduled work. If anyone can't work then, move th
 **Goal:** branches, users, products and prices exist everywhere they're needed.
 
 ### M2
-- [ ] Admin: branches CRUD + close, users CRUD, role grants; publish `branch.upserted` (E1)
-- [ ] Catalog: categories, products, SKUs, prices (with the price rule from §5.2), suppliers + supplier SKUs; publish `product.upserted`, `price.changed`, `supplier_terms.changed` (E2–E4)
-- [ ] Catalog `GET /prices/{sku}?branch_id=` (used by S6)
-- [ ] `seed/seed_reference.py`: creates everything from §5 item 5 through the REST APIs
+- [x] Admin: branches CRUD + close, users CRUD, role grants; publish `branch.upserted` (E1)
+- [x] Catalog: categories, products, SKUs, prices (with the price rule from §5.2), suppliers + supplier SKUs; publish `product.upserted`, `price.changed`, `supplier_terms.changed` (E2–E4)
+- [x] Catalog `GET /prices/{sku}?branch_id=` (used by S6)
+- [x] `seed/seed_reference.py`: creates everything from §5 item 5 through the REST APIs
 
 ### M3
-- [ ] Inventory consumers: E1 → `branch_ref`, E2 → `sku_ref`
-- [ ] Order consumers: E2 → `product_cache`, E3 → `price_cache`
-- [ ] Order `GET /pos/items?barcode=|q=` served from the caches, using the same price rule
+- [x] Inventory consumers: E1 → `branch_ref`, E2 → `sku_ref`
+- [x] Order consumers: E2 → `product_cache`, E3 → `price_cache`
+- [x] Order `GET /pos/items?barcode=|q=` served from the caches, using the same price rule
 
 ### M4
-- [ ] Analytics consumers: E1 → `dim_branch`, E2 → `dim_product`, E4 → `supplier_terms` (preferred only)
-- [ ] `calendar` table filled for 2025–2027
+- [x] Analytics consumers: E1 → `dim_branch`, E2 → `dim_product`, E4 → `supplier_terms` (preferred only)
+- [x] `calendar` table filled for 2025–2027
 
 ### M1
-- [ ] HQ: branches list / create / close; products list, search and edit; price edit dialog
-- [ ] POS item lookup wired to the real endpoint
+- [x] HQ: branches list / create / close; products list, search and edit; price edit dialog
+- [x] POS item lookup wired to the real endpoint
 
 ### Exit check
-- [ ] The seed runs without errors; row counts match across `catalog.sku`, `order.product_cache`, `inventory.sku_ref` and `analytics.dim_product`
-- [ ] Stop the Order worker, delete its consumer-group offsets and truncate `product_cache`, then start it again → the cache refills from the compacted topic
-- [ ] Changing a price in the HQ screen changes the POS lookup price within seconds
+- [x] The seed runs without errors; row counts match across `catalog.sku`, `order.product_cache`, `inventory.sku_ref` and `analytics.dim_product`
+- [x] Stop the Order worker, delete its consumer-group offsets and truncate `product_cache`, then start it again → the cache refills from the compacted topic (`scripts/demo/rebuild_order_cache.sh`; it also clears Order's `processed_event` rows for those events, or every replay would be skipped as a duplicate)
+- [x] Changing a price in the HQ screen changes the POS lookup price within seconds
 
 ---
 

@@ -4,3 +4,6 @@ extend-exclude = ["**/migrations/*"]
 
 [lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[lint.isort]
+known-first-party = ["retail_common"]

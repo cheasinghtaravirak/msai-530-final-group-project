@@ -4,9 +4,9 @@ import { useAuth } from "./AuthContext";
 import { branchIds } from "./roles";
 
 interface BranchState {
-  /** Branches the user manages, from the token. */
+  /** Branches the user manages or sells at, from the token. */
   branches: string[];
-  /** The branch the user is working in: always one of `branches`, or null if they manage none. */
+  /** The branch the user is working in: always one of `branches`, or null if they work at none. */
   branchId: string | null;
   selectBranch: (branchId: string) => void;
 }
@@ -36,7 +36,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<BranchState>(() => {
-    const branches = branchIds(user, ["BRANCH_MANAGER"]) ?? [];
+    const branches = branchIds(user, ["BRANCH_MANAGER", "CASHIER"]) ?? [];
     const branchId = choice !== null && branches.includes(choice) ? choice : (branches[0] ?? null);
     return { branches, branchId, selectBranch };
   }, [user, choice, selectBranch]);

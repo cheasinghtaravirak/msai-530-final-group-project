@@ -11,6 +11,12 @@ export function humanize(value: string): string {
     .join(" ");
 }
 
+const USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+export function formatMoney(amount: string): string {
+  return USD.format(Number(amount));
+}
+
 export function PageHeader({
   title,
   description,

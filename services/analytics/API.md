@@ -232,4 +232,11 @@ Creates or replaces the policy for one branch and category. Returns the saved ro
 | Consumes | `branch.upserted`, `product.upserted`, `supplier_terms.changed`, `order.completed`, `order.refunded`, `stock.adjusted` |
 | Publishes | `replenishment.approved` |
 
-Only `branch.upserted` has a handler today. The others arrive in Phases 2 and 3. `scripts/fake_orders.py` publishes test `order.completed` events.
+Handlers in Phase 2:
+
+- `branch.upserted` upserts `dim_branch`, and `product.upserted` upserts `dim_product`.
+- `supplier_terms.changed` keeps one `supplier_terms` row per SKU, for the preferred supplier only. An event with `is_preferred: false` deletes the row only if it still belongs to that supplier. An event with `is_preferred: true` is ignored if the row was written by a newer event. So a supplier swap ends with the new supplier, whatever order the two suppliers' events arrive in.
+
+`calendar` holds every day from 2025-01-01 to 2027-12-31 (`weekday` is ISO, Monday = 1). `is_holiday` is false everywhere for now.
+
+The sales and stock events arrive in Phase 3. `scripts/fake_orders.py` publishes test `order.completed` events.
