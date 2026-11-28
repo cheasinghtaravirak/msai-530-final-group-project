@@ -1,0 +1,236 @@
+:root {
+  --app-canvas: #f5f5f7;
+  --app-surface: #ffffff;
+  --app-hairline: rgb(0 0 0 / 0.08);
+  --app-chrome: rgb(255 255 255 / 0.72);
+  --app-sidebar: rgb(236 236 241 / 0.78);
+  --app-sidebar-solid: #ececf1;
+  --app-material: saturate(180%) blur(20px);
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  --app-canvas: #111113;
+  --app-surface: #1c1c1e;
+  --app-hairline: rgb(255 255 255 / 0.09);
+  --app-chrome: rgb(28 28 30 / 0.72);
+  --app-sidebar: rgb(22 22 24 / 0.8);
+  --app-sidebar-solid: #161618;
+}
+
+body {
+  background: var(--app-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tracking tightens as size grows; body text stays at 0. */
+h1 {
+  letter-spacing: -0.021em;
+  text-wrap: balance;
+}
+h2 {
+  letter-spacing: -0.017em;
+  text-wrap: balance;
+}
+h3 {
+  letter-spacing: -0.012em;
+}
+h4 {
+  letter-spacing: -0.006em;
+}
+p {
+  text-wrap: pretty;
+}
+
+table,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.measure {
+  max-width: 65ch;
+}
+
+/* Press feedback on pointer-down (Mantine's activeClassName). */
+.press {
+  transition: transform 100ms ease-out;
+}
+.press:active {
+  transform: scale(0.97);
+}
+.press:disabled:active,
+.press[data-disabled]:active,
+.press[data-loading]:active,
+fieldset:disabled .press:active {
+  transform: none;
+}
+
+/* Translucent chrome: content scrolls under the header; the sidebar is the heavier material. */
+.app-shell {
+  --app-shell-border-color: var(--app-hairline);
+}
+.chrome {
+  background: var(--app-chrome);
+  -webkit-backdrop-filter: var(--app-material);
+  backdrop-filter: var(--app-material);
+}
+.chrome-sidebar {
+  background: var(--app-sidebar);
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 1000;
+  padding: 8px 12px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-primary-color-filled);
+  color: var(--mantine-color-white);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: var(--mantine-font-size-lg);
+  letter-spacing: -0.01em;
+}
+
+.nav-section {
+  padding: 0 12px;
+  margin: 0 0 4px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--mantine-color-dimmed);
+}
+
+.nav-item {
+  border-radius: var(--mantine-radius-md);
+  padding-block: 7px;
+  font-weight: 500;
+  transition: background-color 120ms ease-out;
+}
+.nav-item[data-active] {
+  font-weight: 600;
+}
+.nav-item:active:not([data-active]) {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.app-main {
+  min-height: 100dvh;
+}
+.page {
+  max-width: 75rem;
+  margin-inline: auto;
+}
+
+.surface {
+  background: var(--app-surface);
+  border: 1px solid var(--app-hairline);
+  box-shadow: var(--mantine-shadow-xs);
+}
+:root[data-mantine-color-scheme="dark"] .surface {
+  box-shadow: none;
+}
+
+.stat-value {
+  font-size: 2.125rem;
+  line-height: 1.06;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-action {
+  margin-top: var(--mantine-spacing-sm);
+}
+
+.table-head th {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+  letter-spacing: 0.01em;
+}
+
+.table-top td {
+  vertical-align: top;
+}
+
+.job-message {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--mantine-color-dimmed);
+  max-width: 64ch;
+}
+
+.login-canvas {
+  min-height: 100dvh;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .chrome {
+    background: var(--app-surface);
+  }
+  .chrome-sidebar {
+    background: var(--app-sidebar-solid);
+  }
+}
+
+@media (max-width: 47.99em) {
+  /* On phones the sidebar covers the page, so it needs a near-solid material to stay legible. */
+  .chrome-sidebar {
+    background: var(--app-sidebar-solid);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .nav-item {
+    transition: none;
+  }
+  .press:active {
+    transform: none;
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .chrome {
+    background: var(--app-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .chrome-sidebar {
+    background: var(--app-sidebar-solid);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root[data-mantine-color-scheme="light"] {
+    --app-hairline: rgb(0 0 0 / 0.4);
+    --mantine-color-dimmed: var(--mantine-color-gray-7);
+  }
+  :root[data-mantine-color-scheme="dark"] {
+    --app-hairline: rgb(255 255 255 / 0.45);
+    --mantine-color-dimmed: var(--mantine-color-dark-1);
+  }
+  .chrome {
+    background: var(--app-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .chrome-sidebar {
+    background: var(--app-sidebar-solid);
+  }
+}
