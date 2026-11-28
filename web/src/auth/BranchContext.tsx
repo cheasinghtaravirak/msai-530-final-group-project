@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 
 import { useAuth } from "./AuthContext";
-import { branchIds } from "./roles";
+import { branchIds, type Role } from "./roles";
 
 interface BranchState {
-  /** Branches the user manages or sells at, from the token. */
   branches: string[];
   /** The branch the user is working in: always one of `branches`, or null if they work at none. */
   branchId: string | null;
@@ -12,6 +12,8 @@ interface BranchState {
 }
 
 const STORAGE_KEY = "retail.branch";
+const MANAGER: Role[] = ["BRANCH_MANAGER"];
+const STAFF: Role[] = ["BRANCH_MANAGER", "CASHIER"];
 const BranchContext = createContext<BranchState | null>(null);
 
 function loadChoice(): string | null {
@@ -24,6 +26,7 @@ function loadChoice(): string | null {
 
 export function BranchProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const roles = /^\/branch(\/|$)/.test(useLocation().pathname) ? MANAGER : STAFF;
   const [choice, setChoice] = useState(loadChoice);
 
   const selectBranch = useCallback((branchId: string) => {
@@ -36,10 +39,10 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<BranchState>(() => {
-    const branches = branchIds(user, ["BRANCH_MANAGER", "CASHIER"]) ?? [];
+    const branches = branchIds(user, roles) ?? [];
     const branchId = choice !== null && branches.includes(choice) ? choice : (branches[0] ?? null);
     return { branches, branchId, selectBranch };
-  }, [user, choice, selectBranch]);
+  }, [user, roles, choice, selectBranch]);
 
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
 }

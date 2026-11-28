@@ -1,6 +1,17 @@
 from django.db import models
 
 
+class BranchRef(models.Model):
+    CLOSED = "CLOSED"
+
+    branch_id = models.CharField(primary_key=True, max_length=10)
+    status = models.CharField(max_length=10)
+    timezone = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = "branch_ref"
+
+
 class ProductCache(models.Model):
     sku = models.CharField(primary_key=True, max_length=50)
     barcode = models.CharField(max_length=50, unique=True, null=True, blank=True)

@@ -102,7 +102,12 @@ One run, same shape as above. 404 `NOT_FOUND` if it doesn't exist. The Jobs page
 }
 ```
 
-Revenue and units are net of refunds, counted on the refund day. `orders` counts distinct completed orders. `avg_basket` is `revenue / orders`. With `scope=company`, `branch_id` is `ALL` and the numbers are the sum of every branch, so they always match the branch reports.
+Revenue and units are net of refunds, counted on the refund day. `orders` counts the distinct orders sold in the period, refunded or not, so a refund lowers revenue and leaves `orders` alone. It is always counted from `fact_sales_line`, never summed from `agg_sales_daily.order_count`, which counts orders per SKU. `avg_basket` is `revenue / orders`, or `"0.00"` with no orders. With `scope=company`, `branch_id` is `ALL` and the numbers are the sum of every branch, so they always match the branch reports.
+
+Built in Phase 3: `scope=branch` with `grain=day`. Anything else returns 400 `VALIDATION_ERROR` until Phase 4.
+
+- `from` and `to` default to today. A range is at most 366 days and is not paginated.
+- Rows come newest first. Today is read live from the facts and always has a row when it is in the range, with zeros before the first sale. A past day has a row once `day_close` (J2) has written its `agg_sales_daily` rows.
 
 ### `GET /reports/branches/compare?month=YYYY-MM`
 
@@ -239,4 +244,14 @@ Handlers in Phase 2:
 
 `calendar` holds every day from 2025-01-01 to 2027-12-31 (`weekday` is ISO, Monday = 1). `is_holiday` is false everywhere for now.
 
-The sales and stock events arrive in Phase 3. `scripts/fake_orders.py` publishes test `order.completed` events.
+Handlers in Phase 3:
+
+- `order.completed` inserts one `SALE` row per line into `fact_sales_line`, and `order.refunded` one `REFUND` row per line with negative `qty` and `net_amount`, dated `refund_date`. Both use `ON CONFLICT DO NOTHING` on `(order_id, line_no, entry_type)` and mark `(branch_id, sale_date)` in `dirty_day`.
+- `stock.adjusted` upserts `stock_current` only when the event's `version` is newer than the stored one.
+
+Jobs in Phase 3:
+
+- `day_close` (J2) recomputes `agg_sales_daily` for every day in `dirty_day` and for yesterday, clears those markers in the same transaction, writes yesterday's `fact_stock_daily` from `stock_current`, and marks days more than 3 days old `FINAL`. It then recomputes `agg_sales_monthly` for the months those days fall in.
+- `month_close` (J6) recomputes `agg_sales_monthly` for every month that has daily rows. A month is `FINAL` when it has ended and all its days are final.
+
+`scripts/fake_orders.py` publishes test `order.completed` events.

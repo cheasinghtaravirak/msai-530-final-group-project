@@ -20,7 +20,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState, type FormEvent } from "react";
 
 import { api } from "../../api/client";
-import { EmptyState, ErrorState, formatMoney, humanize, PageHeader, TableSkeleton } from "../../ui";
+import { EmptyState, ErrorState, formatMoney, humanize, PageHeader, TableSkeleton, today } from "../../ui";
 import { useBranches } from "./BranchesPage";
 
 interface Category {
@@ -293,9 +293,6 @@ function EditProductForm({
     </form>
   );
 }
-
-// en-CA gives the YYYY-MM-DD a date input expects.
-const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Phnom_Penh" });
 
 function PriceEditor({ sku }: { sku: Sku }) {
   const queryClient = useQueryClient();

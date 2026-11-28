@@ -18,7 +18,7 @@ The **Phase** column says which phase of the implementation plan builds the endp
 |---|---|---|
 | `GET /health` | 1 (built) | none |
 | `GET /refs/branches` | 1 (built) | `HQ_ADMIN`, `BRANCH_MANAGER` |
-| `GET /stock?branch_id=&sku=&low_only=` | 3 | `BRANCH_MANAGER` |
+| `GET /stock?branch_id=&sku=&q=&low_only=&negative_only=` | 3 | `BRANCH_MANAGER` |
 | `GET /stock/{branch_id}/{sku}/movements` | 3 | `BRANCH_MANAGER` |
 | `POST /adjustments` | 3 | `BRANCH_MANAGER` |
 | `POST /receipts` | 3 ad hoc, 4 against a PO | `BRANCH_MANAGER` |
@@ -33,11 +33,20 @@ Debug view of the `branch_ref` copy fed by `branch.upserted`: `{"results": [{"br
 
 ## GET /stock
 
-`?branch_id=BR-04` lists the branch's stock, paginated. `sku` narrows it to one SKU. `low_only=true` keeps only low rows.
+`?branch_id=BR-04` lists the branch's stock by SKU, paginated. `branch_id` is required.
+
+| Param | Effect |
+|---|---|
+| `sku` | Only this SKU. |
+| `q` | SKU code or name contains this text, case-insensitive. |
+| `low_only=true` | Only rows with `on_hand <= LOW_STOCK_THRESHOLD`. The threshold is an Inventory setting read from the environment, 5 by default. |
+| `negative_only=true` | Only rows with `on_hand < 0`. |
 
 ```json
-{"results": [{"sku": "COKE-330", "name": "Coca-Cola 330 ml", "on_hand": 42, "on_order": 48}], "count": 1}
+{"results": [{"sku": "COKE-330", "name": "Coca-Cola 330 ml", "on_hand": 42, "on_order": 48, "low": false}], "count": 1}
 ```
+
+`low` is true when the row is at or under the threshold, so a screen never hard-codes it. `name` is empty for a SKU Inventory has not received a `product.upserted` for.
 
 ## GET /stock/{branch_id}/{sku}/movements
 
@@ -63,23 +72,32 @@ The ledger for one SKU at one branch, newest first, paginated:
 
 `reason` is `SALE`, `REFUND`, `RECEIPT`, `ADJUST`, `TRANSFER_OUT` or `TRANSFER_IN`. `source_ref` is the order, receipt or transfer ID. `created_by` is the user for manual changes and `null` for changes made by an event.
 
+`source_ref` and `source_line` name the cause of a movement, and `UNIQUE (source_ref, source_line, branch_id, reason)` lets each cause move stock once. A sale or refund line uses the order ID and its `line_no`. A receipt line uses the receipt ID and its 1-based position. An adjustment gets a fresh UUID and line 1.
+
 ## POST /adjustments
 
 ```json
 {"branch_id": "BR-04", "sku": "COKE-330", "qty_delta": -3, "note": "Count after breakage"}
 ```
 
-`qty_delta` is non-zero. Writes an `ADJUST` movement, updates `on_hand`, and returns the new stock row.
+`qty_delta` is non-zero. Writes an `ADJUST` movement, updates `on_hand`, and returns the new stock row with 201, in the `GET /stock` row shape. A SKU that Inventory does not know returns 404 `UNKNOWN_SKU`.
 
 ## POST /receipts
 
 ```json
-{"po_id": "…", "branch_id": "BR-04", "lines": [{"sku": "COKE-330", "qty": 48}]}
+{"po_id": null, "branch_id": "BR-04", "lines": [{"sku": "COKE-330", "qty": 48}]}
 ```
 
-- `po_id` is `null` for an ad hoc receipt (Phase 3).
+- `po_id` is `null` or absent for an ad hoc receipt (Phase 3). Until Phase 4, a receipt against a PO returns 400 `VALIDATION_ERROR`.
 - Against a PO (Phase 4), a receipt may be partial or full. Each line raises `qty_received` on the PO line, raises `on_hand` and lowers `on_order`. The PO becomes `PARTIAL`, or `RECEIVED` when every line is fully received.
-- Writes one `RECEIPT` movement per line. `received_by` comes from the token. Returns the receipt with its `receipt_id`.
+- Writes one `RECEIPT` movement per line. A SKU may appear on one line only. `received_by` comes from the token.
+
+Returns 201:
+
+```json
+{"receipt_id": "…", "po_id": null, "branch_id": "BR-04", "received_by": "4c1e…",
+ "received_at": "2026-11-26T09:10:00+07:00", "lines": [{"sku": "COKE-330", "qty": 48}]}
+```
 
 ## GET /purchase-orders
 

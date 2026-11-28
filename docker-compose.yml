@@ -113,7 +113,7 @@ services:
   admin:
     image: retail/admin
     build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: admin } }
-    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py bootstrap_admin && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile -"]
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py bootstrap_admin && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"]
     environment: &admin-env
       <<: *service-env
       SERVICE_NAME: admin

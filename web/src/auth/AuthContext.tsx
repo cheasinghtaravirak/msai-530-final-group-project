@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     try {
-      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.clear();
     } catch {
       /* storage unavailable */
     }

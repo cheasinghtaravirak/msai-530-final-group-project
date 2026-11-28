@@ -267,40 +267,40 @@ The weekend of Nov 28–29 is scheduled work. If anyone can't work then, move th
 **Goal:** the core transaction path works, with events flowing to Inventory and Analytics.
 
 ### M3
-- [ ] `POST /orders`:
-  - [ ] idempotent: an existing `order_id` returns the stored order with 200
-  - [ ] prices looked up server-side from `price_cache`, falling back to S6 with a 300 ms timeout and `PRICE_UNAVAILABLE` on failure
-  - [ ] payments must equal the total; the order is saved `COMPLETED` with `sale_date` and the `order.completed` outbox row in one transaction
-- [ ] `POST /orders/{id}/refund`: whole order, `order.refunded`
-- [ ] `GET /orders?branch_id=&date=`, `GET /orders/{id}`
-- [ ] `GET /internal/sales-summary?date=` (service token)
-- [ ] Inventory consumer: E5 → a SALE movement per line, E6 → a REFUND movement; update `stock_level` and `version`; publish `stock.adjusted` (E7)
-- [ ] Inventory: `GET /stock`, movements history, `POST /adjustments`, `POST /receipts` (ad hoc for now)
-- [ ] Branch scoping on every endpoint: a manager or cashier can only act on branches in their token
+- [x] `POST /orders`:
+  - [x] idempotent: an existing `order_id` returns the stored order with 200
+  - [x] prices looked up server-side from `price_cache`, falling back to S6 with a 300 ms timeout and `PRICE_UNAVAILABLE` on failure
+  - [x] payments must equal the total; the order is saved `COMPLETED` with `sale_date` and the `order.completed` outbox row in one transaction
+- [x] `POST /orders/{id}/refund`: whole order, `order.refunded`
+- [x] `GET /orders?branch_id=&date=`, `GET /orders/{id}`
+- [x] `GET /internal/sales-summary?date=` (service token)
+- [x] Inventory consumer: E5 → a SALE movement per line, E6 → a REFUND movement; update `stock_level` and `version`; publish `stock.adjusted` (E7)
+- [x] Inventory: `GET /stock`, movements history, `POST /adjustments`, `POST /receipts` (ad hoc for now)
+- [x] Branch scoping on every endpoint: a manager or cashier can only act on branches in their token
 
 ### M4
-- [ ] Analytics consumer: E5/E6 → `fact_sales_line` (`ON CONFLICT DO NOTHING`) + `dirty_day`; E7 → `stock_current` when the `version` is newer
-- [ ] `GET /reports/sales` with `grain=day` for today (live from facts) and past days (from `agg_sales_daily`)
-- [ ] J2 `day_close` and J6 `month_close`
-- [ ] `seed/load_history.py`: bulk insert history into `order_db.sales_order/order_line` and `analytics.fact_sales_line`, set `inventory.stock_level`, then run J2 and J6 over all days
+- [x] Analytics consumer: E5/E6 → `fact_sales_line` (`ON CONFLICT DO NOTHING`) + `dirty_day`; E7 → `stock_current` when the `version` is newer
+- [x] `GET /reports/sales` with `grain=day` for today (live from facts) and past days (from `agg_sales_daily`)
+- [x] J2 `day_close` and J6 `month_close`
+- [x] `seed/load_history.py`: bulk insert history into `order_db.sales_order/order_line` and `analytics.fact_sales_line`, set `inventory.stock_level`, then run J2 and J6 over all days
 
 ### M1
-- [ ] POS screen: scan or search → cart → payment (cash/card/QR, amount, change due) → receipt. Generate `order_id` when the cart opens, and **reuse it on retry**.
-- [ ] POS "today's sales" list
-- [ ] Branch: stock list (search, low stock, negative stock), movement history drawer, adjustment dialog
-- [ ] Branch: sales history with a refund button
+- [x] POS screen: scan or search → cart → payment (cash/card/QR, amount, change due) → receipt. Generate `order_id` when the cart opens, and **reuse it on retry**.
+- [x] POS "today's sales" list
+- [x] Branch: stock list (search, low stock, negative stock), movement history drawer, adjustment dialog
+- [x] Branch: sales history with a refund button
 
 ### M2
-- [ ] `X-Request-ID` → `correlation_id` end to end; structured logging in all services
-- [ ] Help M3 with the Inventory endpoints if needed
-- [ ] `scripts/smoke.py` first version (§13)
+- [x] `X-Request-ID` → `correlation_id` end to end; structured logging in all services
+- [ ] Help M3 with the Inventory endpoints if needed (not needed: built in the M3 lane)
+- [x] `scripts/smoke.py` first version (§13)
 
 ### Exit check
-- [ ] Sell 3 items at the POS → stock for those SKUs drops within about 2 seconds; "today so far" includes the sale
-- [ ] Repeating the same `POST /orders` (same `order_id`) returns the same order; there is still only one movement per line
-- [ ] Refund → stock returns, today's revenue drops
-- [ ] With Catalog stopped, a cached SKU still sells
-- [ ] History is loaded: the reports API returns 6 months of daily data
+- [x] Sell 3 items at the POS → stock for those SKUs drops within about 2 seconds; "today so far" includes the sale
+- [x] Repeating the same `POST /orders` (same `order_id`) returns the same order; there is still only one movement per line
+- [x] Refund → stock returns, today's revenue drops
+- [x] With Catalog stopped, a cached SKU still sells
+- [x] History is loaded: the reports API returns 6 months of daily data
 
 ---
 

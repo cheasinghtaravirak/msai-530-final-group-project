@@ -1,8 +1,14 @@
 """Request ID propagation: gateway header -> logs -> event envelope (correlation_id)."""
 
 import contextvars
+import json
 import logging
+import time
 import uuid
+
+from django.conf import settings
+
+log = logging.getLogger("retail_common.request")
 
 _request_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("request_id", default=None)
 
@@ -28,17 +34,41 @@ class RequestIdMiddleware:
     def __call__(self, request):
         rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex
         token = set_request_id(rid)
+        started = time.monotonic()
         try:
             response = self.get_response(request)
+            if request.path != "/health":
+                log.info(
+                    "%s %s -> %s",
+                    request.method,
+                    request.path,
+                    response.status_code,
+                    extra={
+                        "method": request.method,
+                        "path": request.path,
+                        "status": response.status_code,
+                        "duration_ms": round((time.monotonic() - started) * 1000),
+                    },
+                )
         finally:
             reset_request_id(token)
         response["X-Request-ID"] = rid
         return response
 
 
-class RequestIdFilter(logging.Filter):
-    """Adds `request_id` to every log record so the log format can include it."""
+class JsonFormatter(logging.Formatter):
+    EXTRA = ("method", "path", "status", "duration_ms")
 
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.request_id = get_request_id() or "-"
-        return True
+    def format(self, record: logging.LogRecord) -> str:
+        entry = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname,
+            "service": settings.SERVICE_NAME,
+            "logger": record.name,
+            "request_id": get_request_id(),
+            "message": record.getMessage(),
+        }
+        entry.update({k: getattr(record, k) for k in self.EXTRA if hasattr(record, k)})
+        if record.exc_info:
+            entry["exception"] = self.formatException(record.exc_info)
+        return json.dumps(entry)
