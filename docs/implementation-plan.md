@@ -205,28 +205,28 @@ The weekend of Nov 28–29 is scheduled work. If anyone can't work then, move th
 - [x] **Admin:** `app_user`, `role_grant`, `shop`, `branch` models; `POST /auth/login` returns a JWT with the claims from §4.1; RS256 key pair generated into `.env` by a script
 
 ### M3: Transactions
-- [ ] Order models (§5.4) and migrations: `sales_order`, `order_line`, `payment`, `product_cache`, `price_cache`
-- [ ] Inventory models (§5.3) and migrations: `stock_level`, `stock_movement` (with the UNIQUE constraint), `purchase_order`, `po_line`, `goods_receipt`, `receipt_line`, `sku_ref`, `branch_ref`. Transfers are deferred, but create the tables if cheap.
-- [ ] Write `services/order/API.md` and `services/inventory/API.md`
+- [x] Order models (§5.4) and migrations: `sales_order`, `order_line`, `payment`, `product_cache`, `price_cache`
+- [x] Inventory models (§5.3) and migrations: `stock_level`, `stock_movement` (with the UNIQUE constraint), `purchase_order`, `po_line`, `goods_receipt`, `receipt_line`, `sku_ref`, `branch_ref`. Transfers are deferred, but create the tables if cheap.
+- [x] Write `services/order/API.md` and `services/inventory/API.md`
 
 ### M4: Analytics and AI
-- [ ] Analytics models for all four schemas (§5.5 + insights) plus `job_run`, with migrations
-- [ ] `seed/generate_history.py`: 6 months × 5 branches × about 200 SKUs, with weekday seasonality, a slight trend, some SKUs that sell slowly, and a few stockout gaps. Outputs CSV or Python objects.
-- [ ] `scripts/fake_orders.py`: publishes `order.completed` events matching the contract
-- [ ] Write `services/analytics/API.md`
+- [x] Analytics models for all four schemas (§5.5 + insights) plus `job_run`, with migrations
+- [x] `seed/generate_history.py`: 6 months × 5 branches × about 200 SKUs, with weekday seasonality, a slight trend, some SKUs that sell slowly, and a few stockout gaps. Outputs CSV or Python objects.
+- [x] `scripts/fake_orders.py`: publishes `order.completed` events matching the contract
+- [x] Write `services/analytics/API.md`
 
 ### M1: Front end
 - [x] Vite + React + TS + Mantine + React Router + TanStack Query set up
-- [ ] ESLint + Prettier
+- [x] ESLint + Prettier
 - [x] API client: base URL `/api`, attaches the JWT, handles 401 by redirecting to login, parses the standard error format
 - [x] Auth context: login, decode the JWT, store it in memory + `sessionStorage`, logout
 - [x] Layouts: HQ, Branch and POS shells with role-based menus (also built: Branches page, Jobs page with "Run now")
-- [ ] Branch selector for managers with several branches
+- [x] Branch selector for managers with several branches
 - [x] Login page
 
 ### Exit check (Tuesday evening)
 - [x] `docker compose up` → all containers healthy (`/health` returns 200 on all 5 through the gateway)
-- [ ] Log in through the web app as a seeded admin and see the HQ menu (login API verified; still to check in a browser)
+- [x] Log in through the web app as a seeded admin and see the HQ menu
 - [x] Creating a branch publishes `branch.upserted`; Inventory and Analytics both apply it once. Rewinding the consumer offsets redelivers it and it is skipped as a duplicate. A malformed message goes to the DLQ. With Kafka stopped, writes still succeed and the outbox catches up on restart.
 - [x] `psql` as `order_svc` into `inventory_db` → permission denied
 

@@ -50,7 +50,12 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.currentTarget.value)}
             />
-            <PasswordInput label="Password" required value={password} onChange={(e) => setPassword(e.currentTarget.value)} />
+            <PasswordInput
+              label="Password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
+            />
             <Button type="submit" loading={busy} fullWidth>
               Sign in
             </Button>

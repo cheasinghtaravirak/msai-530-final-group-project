@@ -14,3 +14,16 @@ class BranchRef(models.Model):
     class Meta:
         db_table = "branch_ref"
         ordering = ["branch_id"]
+
+
+class SkuRef(models.Model):
+    sku = models.CharField(primary_key=True, max_length=50)
+    name = models.CharField(max_length=200)
+    category_id = models.UUIDField()
+    pack_size = models.PositiveIntegerField(default=1)
+    active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "sku_ref"
+        ordering = ["sku"]

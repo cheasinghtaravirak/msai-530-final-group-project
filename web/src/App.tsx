@@ -29,15 +29,50 @@ export function App() {
         }
       >
         <Route index element={<HomeRedirect />} />
-        <Route path="hq" element={<RequireRole roles={["HQ_ADMIN"]}><HqDashboard /></RequireRole>} />
-        <Route path="hq/branches" element={<RequireRole roles={["HQ_ADMIN"]}><BranchesPage /></RequireRole>} />
-        <Route path="hq/jobs" element={<RequireRole roles={["HQ_ADMIN"]}><JobsPage /></RequireRole>} />
+        <Route
+          path="hq"
+          element={
+            <RequireRole roles={["HQ_ADMIN"]}>
+              <HqDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="hq/branches"
+          element={
+            <RequireRole roles={["HQ_ADMIN"]}>
+              <BranchesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="hq/jobs"
+          element={
+            <RequireRole roles={["HQ_ADMIN"]}>
+              <JobsPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="branch"
-          element={<RequireRole roles={["HQ_ADMIN", "BRANCH_MANAGER"]}><BranchDashboard /></RequireRole>}
+          element={
+            <RequireRole roles={["HQ_ADMIN", "BRANCH_MANAGER"]}>
+              <BranchDashboard />
+            </RequireRole>
+          }
         />
-        <Route path="pos" element={<RequireRole roles={["BRANCH_MANAGER", "CASHIER"]}><PosPage /></RequireRole>} />
-        <Route path="no-access" element={<MessagePage title="No access" text="Your account has no role for this page." />} />
+        <Route
+          path="pos"
+          element={
+            <RequireRole roles={["BRANCH_MANAGER", "CASHIER"]}>
+              <PosPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="no-access"
+          element={<MessagePage title="No access" text="Your account has no role for this page." />}
+        />
         <Route path="*" element={<MessagePage title="Page not found" text="This page does not exist." />} />
       </Route>
     </Routes>
