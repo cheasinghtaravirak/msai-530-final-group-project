@@ -41,8 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const logout = useCallback(() => {
+    // Keep the saved sale: an unconfirmed one must stay retryable.
     try {
-      sessionStorage.clear();
+      sessionStorage.removeItem(STORAGE_KEY);
     } catch {
       /* storage unavailable */
     }

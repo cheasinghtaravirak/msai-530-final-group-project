@@ -1,6 +1,8 @@
 from django.db import models
 from django.db.models import Q
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class Status(models.TextChoices):
     PROVISIONAL = "PROVISIONAL"
@@ -21,7 +23,7 @@ class DimBranch(models.Model):
 
 
 class DimProduct(models.Model):
-    sku = models.CharField(primary_key=True, max_length=40)
+    sku = models.CharField(primary_key=True, max_length=SKU_MAX_LENGTH)
     name = models.CharField(max_length=200)
     category_id = models.UUIDField()
     category_name = models.CharField(max_length=100)
@@ -60,7 +62,7 @@ class FactSalesLine(models.Model):
     line_no = models.PositiveSmallIntegerField()
     entry_type = models.CharField(max_length=6, choices=EntryType.choices)
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     channel = models.CharField(max_length=10, choices=Channel.choices, default=Channel.POS)
     sale_date = models.DateField()
     qty = models.IntegerField()
@@ -82,7 +84,7 @@ class FactSalesLine(models.Model):
 class StockCurrent(models.Model):
     pk = models.CompositePrimaryKey("branch_id", "sku")
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     on_hand = models.IntegerField()
     on_order = models.IntegerField(default=0)
     version = models.PositiveIntegerField()
@@ -94,7 +96,7 @@ class StockCurrent(models.Model):
 class FactStockDaily(models.Model):
     pk = models.CompositePrimaryKey("branch_id", "sku", "stock_date")
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     stock_date = models.DateField()
     closing_on_hand = models.IntegerField()
     stockout_flag = models.BooleanField(default=False)
@@ -116,7 +118,7 @@ class DirtyDay(models.Model):
 class AggSalesDaily(models.Model):
     pk = models.CompositePrimaryKey("branch_id", "sku", "sale_date")
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     sale_date = models.DateField()
     units = models.IntegerField()
     revenue = models.DecimalField(max_digits=12, decimal_places=2)

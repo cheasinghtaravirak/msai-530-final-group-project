@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models import Q
 from forecasting.models import ForecastRun
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class StockPolicy(models.Model):
     pk = models.CompositePrimaryKey("branch_id", "category_id")
@@ -23,7 +25,7 @@ class StockPolicy(models.Model):
 
 
 class SupplierTerms(models.Model):
-    sku = models.CharField(primary_key=True, max_length=40)
+    sku = models.CharField(primary_key=True, max_length=SKU_MAX_LENGTH)
     supplier_id = models.UUIDField()
     lead_time_days = models.PositiveSmallIntegerField()
     pack_size = models.PositiveIntegerField(default=1)
@@ -50,7 +52,7 @@ class Recommendation(models.Model):
     recommendation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     run = models.ForeignKey(ForecastRun, on_delete=models.PROTECT, related_name="recommendations")
     branch_id = models.CharField(max_length=10)
-    sku = models.CharField(max_length=40)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     type = models.CharField(max_length=8, choices=Type.choices)
     suggested_qty = models.PositiveIntegerField()
     supplier_id = models.UUIDField(null=True, blank=True)

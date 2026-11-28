@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from django.db.models import Q
 
+from retail_common.models import SKU_MAX_LENGTH
+
 ALL_BRANCHES = "ALL"
 
 
@@ -39,7 +41,7 @@ class Sku(models.Model):
         EA = "EA"
         KG = "KG"
 
-    sku = models.CharField(primary_key=True, max_length=50)
+    sku = models.CharField(primary_key=True, max_length=SKU_MAX_LENGTH)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="skus", db_column="product_id")
     name = models.CharField(max_length=200)
     barcode = models.CharField(max_length=50, unique=True, null=True, blank=True)

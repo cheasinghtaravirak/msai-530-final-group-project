@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from urllib.parse import quote
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 import httpx
 from caches.models import BranchRef, ProductCache
@@ -32,11 +31,6 @@ class PricedLine:
     @property
     def line_total(self) -> Decimal:
         return self.unit_price * self.qty
-
-
-def local_date(branch_id: str, moment: datetime) -> date:
-    branch = BranchRef.objects.filter(pk=branch_id).first()
-    return moment.astimezone(ZoneInfo(branch.timezone) if branch else timezone.get_current_timezone()).date()
 
 
 def catalog_price(sku: str, branch_id: str) -> tuple[str, Decimal]:
@@ -98,7 +92,7 @@ def place_order(
         raise ApiError("BRANCH_CLOSED", f"Branch {branch_id} is closed", status=status.HTTP_409_CONFLICT)
 
     now = timezone.now()
-    sale_date = local_date(branch_id, now)
+    sale_date = timezone.localdate(now)
     priced = price_lines(branch_id, lines, sale_date)
     total = sum((line.line_total for line in priced), Decimal("0.00"))
     if sum(payment["amount"] for payment in payments) != total:
@@ -173,7 +167,7 @@ def refund_order(order_id: UUID, refunded_by: str) -> SalesOrder:
         now = timezone.now()
         order.status = OrderStatus.REFUNDED
         order.refunded_at = now
-        order.refund_date = local_date(order.branch_id, now)
+        order.refund_date = timezone.localdate(now)
         order.refunded_by = refunded_by
         order.save(update_fields=["status", "refunded_at", "refund_date", "refunded_by"])
         publish_event(

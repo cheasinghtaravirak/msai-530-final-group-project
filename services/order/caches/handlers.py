@@ -28,6 +28,4 @@ def on_price_changed(event: dict) -> None:
 @handles("branch.upserted")
 def on_branch_upserted(event: dict) -> None:
     p = event["payload"]
-    BranchRef.objects.update_or_create(
-        branch_id=p["branch_id"], defaults={"status": p["status"], "timezone": p["timezone"]}
-    )
+    BranchRef.objects.update_or_create(branch_id=p["branch_id"], defaults={"status": p["status"]})

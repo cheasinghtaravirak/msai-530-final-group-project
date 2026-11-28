@@ -12,6 +12,11 @@ export class ApiError extends Error {
   }
 }
 
+/** A request that got no answer or a 5xx may still have been applied. A 4xx means it was not. */
+export function outcomeUnknown(error: unknown): boolean {
+  return !(error instanceof ApiError) || error.status === 0 || error.status >= 500;
+}
+
 let accessToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
 

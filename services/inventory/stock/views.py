@@ -1,5 +1,3 @@
-import uuid
-
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
@@ -10,6 +8,7 @@ from rest_framework.views import APIView
 
 from retail_common.api import ApiError, Pagination
 from retail_common.auth import BRANCH_MANAGER, HasRole
+from retail_common.models import SKU_MAX_LENGTH
 
 from .ledger import Cause, move_stock
 from .models import MovementReason, StockLevel, StockMovement
@@ -52,7 +51,7 @@ def paginated(request, view, queryset, to_rows) -> Response:
 
 class StockQuery(serializers.Serializer):
     branch_id = serializers.CharField(max_length=10)
-    sku = serializers.CharField(max_length=50, required=False)
+    sku = serializers.CharField(max_length=SKU_MAX_LENGTH, required=False)
     q = serializers.CharField(max_length=100, required=False)
     low_only = serializers.BooleanField(default=False)
     negative_only = serializers.BooleanField(default=False)
@@ -103,8 +102,9 @@ class MovementsView(APIView):
 
 
 class AdjustmentInput(serializers.Serializer):
+    adjustment_id = serializers.UUIDField()
     branch_id = serializers.CharField(max_length=10)
-    sku = serializers.CharField(max_length=50)
+    sku = serializers.CharField(max_length=SKU_MAX_LENGTH)
     qty_delta = serializers.IntegerField(min_value=-100_000, max_value=100_000)
     note = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
 
@@ -114,6 +114,18 @@ class AdjustmentInput(serializers.Serializer):
         return value
 
 
+def replayed_adjustment(adjustment_id: str, branch_id: str) -> Response | None:
+    movement = StockMovement.objects.filter(reason=MovementReason.ADJUST, source_ref=adjustment_id).first()
+    if movement is None:
+        return None
+    if movement.branch_id != branch_id:
+        raise ApiError(
+            "ADJUSTMENT_ID_CONFLICT", "This adjustment_id belongs to another branch", status=status.HTTP_409_CONFLICT
+        )
+    level = StockLevel.objects.get(branch_id=movement.branch_id, sku=movement.sku)
+    return Response(stock_rows([level])[0])
+
+
 class AdjustmentsView(APIView):
     permission_classes = [HasRole(BRANCH_MANAGER, branch_from="branch_id")]
 
@@ -121,14 +133,19 @@ class AdjustmentsView(APIView):
         body = AdjustmentInput(data=request.data)
         body.is_valid(raise_exception=True)
         data = body.validated_data
+        adjustment_id = str(data["adjustment_id"])
+        if replay := replayed_adjustment(adjustment_id, data["branch_id"]):
+            return replay
         require_known_skus([data["sku"]])
         level = move_stock(
             data["branch_id"],
             data["sku"],
             data["qty_delta"],
-            Cause(MovementReason.ADJUST, str(uuid.uuid4()), 1),
+            Cause(MovementReason.ADJUST, adjustment_id, 1),
             timezone.localtime(),
             note=data["note"],
             created_by=request.user.id,
         )
+        if level is None:
+            return replayed_adjustment(adjustment_id, data["branch_id"])
         return Response(stock_rows([level])[0], status=status.HTTP_201_CREATED)

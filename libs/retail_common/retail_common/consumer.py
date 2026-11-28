@@ -108,25 +108,29 @@ class EventConsumer:
             self._to_dlq(msg, f"Invalid envelope: {exc!r}")
             return
 
-        attempt = 0
-        while True:
-            attempt += 1
-            try:
-                close_old_connections()
-                apply_event(envelope)
-                return
-            except (OperationalError, InterfaceError) as exc:
-                # Database unavailable: wait and retry the same event, never DLQ it.
-                log.warning("Database unavailable, retrying %s: %s", envelope["event_id"], exc)
-                close_old_connections()
-                attempt = 0
-                time.sleep(5)
-            except Exception as exc:
-                log.exception("Handler failed for %s (attempt %d)", envelope.get("event_id"), attempt)
-                if attempt >= self.max_attempts:
-                    self._to_dlq(msg, repr(exc))
+        token = set_request_id(envelope.get("correlation_id"))
+        try:
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    close_old_connections()
+                    apply_event(envelope)
                     return
-                time.sleep(attempt)
+                except (OperationalError, InterfaceError) as exc:
+                    # Database unavailable: wait and retry the same event, never DLQ it.
+                    log.warning("Database unavailable, retrying %s: %s", envelope["event_id"], exc)
+                    close_old_connections()
+                    attempt = 0
+                    time.sleep(5)
+                except Exception as exc:
+                    log.exception("Handler failed for %s (attempt %d)", envelope.get("event_id"), attempt)
+                    if attempt >= self.max_attempts:
+                        self._to_dlq(msg, repr(exc))
+                        return
+                    time.sleep(attempt)
+        finally:
+            reset_request_id(token)
 
     def _to_dlq(self, msg, error: str) -> None:
         headers = list(msg.headers() or []) + [

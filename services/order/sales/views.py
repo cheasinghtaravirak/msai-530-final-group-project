@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from retail_common.api import ApiError, Pagination
 from retail_common.auth import BRANCH_MANAGER, CASHIER, HasRole, IsInternalService, require_branch_access
+from retail_common.models import SKU_MAX_LENGTH
 
 from .models import PaymentMethod, SalesOrder
 from .orders import place_order, refund_order
@@ -17,7 +18,7 @@ SELLERS = (CASHIER, BRANCH_MANAGER)
 
 
 class LineInput(serializers.Serializer):
-    sku = serializers.CharField(max_length=50)
+    sku = serializers.CharField(max_length=SKU_MAX_LENGTH)
     qty = serializers.IntegerField(min_value=1, max_value=10_000)
 
 

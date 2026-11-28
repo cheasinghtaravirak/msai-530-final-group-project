@@ -1,5 +1,7 @@
 from django.db import models
 
+SKU_MAX_LENGTH = 40
+
 
 class Outbox(models.Model):
     """Events waiting to be published. Written in the same transaction as the business change."""

@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import httpx
@@ -214,7 +214,7 @@ def test_a_branch_id_that_is_not_a_string_is_refused_not_a_crash(cashier, body_b
 
 
 def test_closed_branch_cannot_sell(cashier):
-    BranchRef.objects.create(branch_id=BRANCH, status="CLOSED", timezone="Asia/Phnom_Penh")
+    BranchRef.objects.create(branch_id=BRANCH, status="CLOSED")
 
     response = cashier.post("/orders", sale(), format="json")
 
@@ -222,13 +222,13 @@ def test_closed_branch_cannot_sell(cashier):
     assert response.json()["error"]["code"] == "BRANCH_CLOSED"
 
 
-def test_sale_date_is_the_branch_local_date(cashier):
-    BranchRef.objects.create(branch_id=BRANCH, status="OPEN", timezone="Pacific/Kiritimati")
-    far_east = timezone.now().astimezone(tz=__import__("zoneinfo").ZoneInfo("Pacific/Kiritimati")).date()
+def test_sale_date_is_the_business_date_not_the_utc_date(cashier, monkeypatch):
+    late_evening_utc = datetime(2026, 3, 31, 18, 30, tzinfo=UTC)
+    monkeypatch.setattr(orders.timezone, "now", lambda: late_evening_utc)
 
     order = cashier.post("/orders", sale(), format="json").json()
 
-    assert order["sale_date"] == far_east.isoformat()
+    assert order["sale_date"] == "2026-04-01"
 
 
 def test_refund_moves_the_order_to_refunded_once(cashier, manager):
@@ -292,3 +292,10 @@ def test_sales_summary_needs_the_service_token_and_nets_refunds(cashier, manager
 
     ours = [row for row in response.json() if row["branch_id"] == BRANCH]
     assert ours == [{"branch_id": BRANCH, "order_count": 2, "total_amount": str(Decimal("4.90"))}]
+
+
+def test_a_sku_longer_than_40_characters_is_refused(cashier):
+    response = cashier.post("/orders", sale(lines=[{"sku": "TEST-" + "X" * 36, "qty": 1}]), format="json")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"

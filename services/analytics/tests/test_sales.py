@@ -1,8 +1,10 @@
+import threading
 import uuid
 from datetime import date, timedelta
 
 import pytest
 import reporting.handlers  # noqa: F401
+from django.db import connection, transaction
 from reporting import rollups, views
 from reporting.models import AggSalesDaily, AggSalesMonthly, DirtyDay, FactSalesLine, FactStockDaily, StockCurrent
 from rest_framework.test import APIClient
@@ -189,3 +191,37 @@ def test_daily_report_is_branch_scoped_and_phase_3_only():
     assert (month.status_code, month.json()["error"]["code"]) == (400, "VALIDATION_ERROR")
     too_long = manager.get("/reports/sales", {"branch_id": BRANCH, "grain": "day", "from": "2025-01-01"})
     assert too_long.status_code == 400
+
+
+def test_recomputes_of_one_branch_day_take_turns():
+    next_day = LATE_DAY + timedelta(days=1)
+    holding, release = threading.Event(), threading.Event()
+    finished = []
+
+    def recompute(day, hold=False):
+        try:
+            with transaction.atomic():
+                rollups.recompute_day(BRANCH, day, TODAY)
+                if hold:
+                    holding.set()
+                    release.wait(5)
+                finished.append(day)
+                transaction.set_rollback(True)
+        finally:
+            connection.close()
+
+    first = threading.Thread(target=recompute, args=(LATE_DAY, True))
+    first.start()
+    assert holding.wait(5)
+    same_day = threading.Thread(target=recompute, args=(LATE_DAY,))
+    other_day = threading.Thread(target=recompute, args=(next_day,))
+    same_day.start()
+    other_day.start()
+    other_day.join(5)
+    same_day.join(0.5)
+
+    assert finished == [next_day], "another day runs, the same day waits for the first recompute to commit"
+    release.set()
+    first.join(5)
+    same_day.join(5)
+    assert finished == [next_day, LATE_DAY, LATE_DAY]

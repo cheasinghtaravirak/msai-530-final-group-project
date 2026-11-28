@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from .models import AppUser, Branch, RoleGrant
@@ -15,6 +16,11 @@ class BranchSerializer(serializers.ModelSerializer):
         model = Branch
         fields = ["branch_id", "name", "address", "region", "timezone", "status", "opened_on"]
         read_only_fields = ["status"]
+
+    def validate_timezone(self, value: str) -> str:
+        if value != settings.TIME_ZONE:
+            raise serializers.ValidationError(f"Every branch uses the business time zone, {settings.TIME_ZONE}.")
+        return value
 
     def get_fields(self):
         fields = super().get_fields()

@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from django.db.models import Q
 
+from retail_common.models import SKU_MAX_LENGTH
+
 
 class PoStatus(models.TextChoices):
     OPEN = "OPEN"
@@ -32,7 +34,7 @@ class PoLine(models.Model):
     po = models.ForeignKey(
         PurchaseOrder, on_delete=models.PROTECT, related_name="lines", db_column="po_id", db_index=False
     )
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     qty_ordered = models.PositiveIntegerField()
     qty_received = models.PositiveIntegerField(default=0)
 
@@ -65,7 +67,7 @@ class ReceiptLine(models.Model):
     receipt = models.ForeignKey(
         GoodsReceipt, on_delete=models.PROTECT, related_name="lines", db_column="receipt_id", db_index=False
     )
-    sku = models.CharField(max_length=50)
+    sku = models.CharField(max_length=SKU_MAX_LENGTH)
     qty = models.PositiveIntegerField()
 
     class Meta:
